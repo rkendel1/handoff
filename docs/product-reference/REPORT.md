@@ -129,9 +129,19 @@ Its new state is limited to three things:
 
 ## Honest limits of this report
 
-- **The T3 running capture was limited by what runs without provider accounts.** The screenshots show onboarding,
-  projects, the model picker, approval, steering, interrupt, the inline diff and the command palette. Claims about
-  T3 behavior beyond those rest on code reading (file:line in A–D).
+- **The T3 running capture used T3's built-in "Replay (dev)" provider**, which replays recorded agent transcripts
+  through the real adapter, orchestration, approvals and UI. There are 45 screenshots, with notes in
+  `t3-evidence/running/notes.md`. Observed running:
+  - streaming, plan, tools, approval and decline, steer, interrupt, a question;
+  - the diff panel, file viewer, git menu, branch picker, terminal drawer;
+  - settings, pairing-link and environment dialogs;
+  - the backend-disconnected state.
+
+  Not observed: real model turns or file edits, reconnect recovery, commit/push/PR flows, remote pairing,
+  desktop or mobile. Claims about those rest on code reading (file:line in A–D).
+- **Two real provider calls happened during that capture.** T3 found the VM's preinstalled, authenticated Claude CLI
+  and used it on its own to generate two thread titles. No turns were sent to it, and the capture stopped creating
+  threads once this was noticed. A future run should hide that CLI first.
 - **The UI check drives runner calls directly over MCP**, without EVE. Only the live run exercises real EVE.
 - **"Carry-forward of steering across attempts" holds by design** (the agent task is reused) and is not separately
   tested.

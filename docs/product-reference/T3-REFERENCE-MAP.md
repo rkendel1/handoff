@@ -18,7 +18,7 @@ file and line; judgments are marked.
 | [B-providers-approvals-steering.md](t3-evidence/B-providers-approvals-steering.md) | capability declaration, approvals, steering, interrupt, agent-to-agent, MCP, terminals |
 | [C-workspace-source-control.md](t3-evidence/C-workspace-source-control.md) | projects, worktrees, checkpoints, diffs, PRs, checks, reviews, scheduling |
 | [D-remote-auth-secrets-clients.md](t3-evidence/D-remote-auth-secrets-clients.md) | pairing, scoped sessions, presence, revocation, reconnect, secrets, clients |
-| [running/](t3-evidence/running/) | T3 run locally: screenshots of first run, projects, the model picker, approval, steering, interrupt, inline diff, and the command palette |
+| [running/](t3-evidence/running/) | T3 run locally with its Replay provider: 45 screenshots plus [notes](t3-evidence/running/notes.md) (turns, approval and decline, steer, interrupt, questions, diffs, git, terminal, settings, pairing dialog, disconnect) |
 
 **Classifications** (as the brief defines them):
 
