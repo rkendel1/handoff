@@ -17,6 +17,15 @@ A runner that crashes, even right after creating a PR, is recovered by another r
   evidence, and the platform gaps.
 - **Plan and design decisions:** [docs/PLAN.md](docs/PLAN.md).
 - **Product discovery:** `rkendel1/felt-ops` `docs/product-discovery/`.
+- **T3 product reference:** [docs/product-reference/](docs/product-reference/T3-REFERENCE-MAP.md). How T3 Code's
+  patterns map onto Handoff, the product plan, and platform gaps found on the way.
+
+The web app has four areas:
+- **Desk:** what needs you, and why.
+- **Work:** each delegation's request, approval, steering, attempts, source control, review and trust-labelled
+  timeline.
+- **Agents:** definitions, and runners with their declared capabilities and session.
+- **Settings:** connections, policy, approval rules, credential references.
 
 ## Run
 
@@ -37,8 +46,11 @@ cd runner && npm run setup
 ```
 
 ```bash
-npx feltkit session create --id runner-pool --type service --role runner
+npx feltkit session create --id runner-pool --type service --role runner --label <host>
 ```
+
+Give each runner host its own session. They share one principal, but Handoff records which session each runner uses,
+and `npx feltkit session revoke <ref>` stops that runner alone.
 
 ```bash
 HANDOFF_URL=http://localhost:3000 HANDOFF_TOKEN=<session> ANTHROPIC_API_KEY=<key> node runner/src/runner.mjs
@@ -48,8 +60,9 @@ HANDOFF_URL=http://localhost:3000 HANDOFF_TOKEN=<session> ANTHROPIC_API_KEY=<key
 
 | Command | Proves |
 |---|---|
-| `npm test` | 13 lifecycle, authority and failure-path tests, including the crash-after-PR recovery scenario |
-| `node scripts/ui-check.mjs` | the steering controls against a real server, in a browser |
+| `npm test` | 23 lifecycle, authority, failure-path and product-area tests, including the crash-after-PR recovery scenario |
+| `node scripts/ui-check.mjs` | Desk, Work (timeline, steering, approval, source control), Agents and Settings against a real server, in a browser |
+| `node scripts/session-probe.mjs` | per-runner sessions: distinct refs observed, one runner revoked alone, the end hook marks it |
 | `RUNNER_NODE=<node24> ANTHROPIC_API_KEY=<key> node scripts/live-recovery.mjs` | two real runner processes, real EVE: crash after PR, takeover, no duplicate, verified, accepted |
 
 ## Constraints

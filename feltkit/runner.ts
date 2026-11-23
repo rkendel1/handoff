@@ -199,7 +199,7 @@ export const resume = app.mutation({
     const r = await ctx.invocations.resume(d.invocationId!, { worker: instance, leaseMs: leaseWithin(leaseMs, await policyOf(ctx)) });
     if (!r.proceed) return { proceed: false, reason: r.reason ?? r.state };
     const inv = await ctx.invocations.get(d.invocationId!);
-    await transition(ctx, d, "running", "runner", "approval.resumed", { attempt: r.attemptId, instance, instanceAuthenticated: false, approvedBy: inv.approval?.decision?.approvedBy ?? null });
+    await transition(ctx, d, "running", "runner", "approval.resumed", { attempt: r.attemptId, instance, instanceAuthenticated: false, approvedBy: inv.approval?.decision?.approvedBy ?? null, ...(ctx.auth.session?.ref ? { sessionRef: ctx.auth.session.ref } : {}) });
     return { proceed: true, claim: r.claim, attemptId: r.attemptId };
   },
 });

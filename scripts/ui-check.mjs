@@ -4,7 +4,8 @@
 // task is bound to it (no EVE here: this checks the person's controls and FeltKit's agent control state).
 // Writes screenshots and a JSON summary to docs/evidence/ui/.
 import { spawn, execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -14,6 +15,8 @@ import { handoff } from "../runner/src/mcp.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+// A throwaway FeltKit state directory: the server and the session CLI (children inherit it) never touch .feltkit/development.
+process.env.FELTKIT_STATE_DIR = mkdtempSync(join(tmpdir(), "handoff-check-"));
 const out = join(root, "docs/evidence/ui"); mkdirSync(out, { recursive: true });
 const PORT = 3510; const URL_ = `http://localhost:${PORT}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

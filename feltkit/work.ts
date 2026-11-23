@@ -222,7 +222,7 @@ export const timeline = app.query({
       const usage = usageEvents.length === 0 ? null : {
         inputTokens: usageEvents.reduce((n, e) => n + e.usage!.inputTokens, 0),
         outputTokens: usageEvents.reduce((n, e) => n + e.usage!.outputTokens, 0),
-        costUsd: usageEvents.reduce((n, e) => n + (e.usage!.costUsd ?? 0), 0),
+        costUsd: usageEvents.some((e) => typeof e.usage!.costUsd === "number") ? usageEvents.reduce((n, e) => n + (e.usage!.costUsd ?? 0), 0) : null,
         reports: usageEvents.length,
         reportsWithCost: usageEvents.filter((e) => typeof e.usage!.costUsd === "number").length,
       };

@@ -95,7 +95,7 @@ export function WorkDetail({ id, me, report }: { id: string; me: string; report:
                   {a.previous?.length > 0 && <div className="muted small">previous: {a.previous.map((p: any) => `${p.attempt.split("_").pop()} ${p.outcome}`).join(", ")}</div>}
                   {a.openCalls?.length > 0 && <div className="small running-calls">{a.openCalls.map((c: any) => <div key={c.callId}><Badge state="running" /> {c.kind}: {c.text} <span className="muted">since {ago(c.at)}</span></div>)}</div>}
                   {a.usage && <div className="small muted usage" title="Token counts as EVE reported them. Cost is shown only where the provider reported one; nothing is estimated.">
-                    {a.usage.inputTokens.toLocaleString()} tokens in · {a.usage.outputTokens.toLocaleString()} out · {a.usage.reportsWithCost === a.usage.reports ? `$${a.usage.costUsd.toFixed(4)}` : a.usage.reportsWithCost === 0 ? "cost not reported" : `$${a.usage.costUsd.toFixed(4)} for ${a.usage.reportsWithCost} of ${a.usage.reports} reports (others had no cost)`} <Trust trust="reported" />
+                    {a.usage.inputTokens.toLocaleString()} tokens in · {a.usage.outputTokens.toLocaleString()} out · {a.usage.costUsd === null ? "cost not reported" : a.usage.reportsWithCost === a.usage.reports ? `$${a.usage.costUsd.toFixed(4)}` :`$${a.usage.costUsd.toFixed(4)} for ${a.usage.reportsWithCost} of ${a.usage.reports} reports (others had no cost)`} <Trust trust="reported" />
                   </div>}
                   {a.sessions.map((s: any) =><div key={s.session} className="small session">EVE session <code>{s.session}</code> · {s.turns.map((t: any) => `${t.turn} (${t.events})`).join(" · ")}</div>)}
                   {openAttempt === a.attempt && (

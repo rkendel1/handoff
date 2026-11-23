@@ -2,12 +2,15 @@
 // Probe: can separate runners hold separate runner-pool sessions that Handoff observes and FeltKit revokes one at a time?
 // Against a real Handoff dev server (FeltKit 0.3.37). Writes docs/evidence/session-probe.json.
 import { spawn, execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { handoff } from "../runner/src/mcp.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+// A throwaway FeltKit state directory: the server and the session CLI (children inherit it) never touch .feltkit/development.
+process.env.FELTKIT_STATE_DIR = mkdtempSync(join(tmpdir(), "handoff-check-"));
 const PORT = 3520; const URL_ = `http://localhost:${PORT}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const results = [];

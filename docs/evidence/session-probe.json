@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-11-23T20:26:37.787Z",
+  "ranAt": "2026-11-23T20:34:48.742Z",
   "feltkit": "0.3.37",
   "results": [
     {
@@ -10,7 +10,7 @@
     {
       "name": "Handoff observes a distinct session ref per runner",
       "ok": true,
-      "detail": "{\"a\":\"92fb9d5ceb19\",\"b\":\"97fa34c91ffc\"}"
+      "detail": "{\"a\":\"2423fcb16524\",\"b\":\"79ac4611f2ad\"}"
     },
     {
       "name": "the observed refs are FeltKit's session refs",
@@ -25,7 +25,7 @@
     {
       "name": "auth.onSessionEnd marks the revoked runner on Agents",
       "ok": true,
-      "detail": "{\"reason\":\"revoked\",\"at\":1795465597431}"
+      "detail": "{\"reason\":\"revoked\",\"at\":1795466088389}"
     }
   ]
 }

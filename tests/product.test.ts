@@ -229,6 +229,12 @@ test("tool calls link start to settlement by EVE call id, and usage keeps its pr
     assert.deepEqual(att.openCalls.map((c: any) => c.callId), ["call_2"], "only the call with no settlement is open");
     assert.deepEqual([att.usage.inputTokens, att.usage.outputTokens, att.usage.reports, att.usage.reportsWithCost], [1500, 300, 2, 1]);
     assert.equal(Math.round(att.usage.costUsd * 1000), 12, "cost sums only what the provider reported");
+    // A second delegation whose reports carry no cost: the total is absent, not zero.
+    const { id: id2 } = await delegated(ctx, "No cost reported");
+    const b = await claimAs(ctx, id2, "r2");
+    await ctx.runner.mutation(api.runner.report, { delegationId: id2, claim: b.claim!, instance: "r2", events: [{ seq: 1, kind: "usage", text: "usage", at, usage: u(10, 2) }] });
+    const [att2] = (await ctx.person.query(api.work.timeline, { id: id2 })).attempts as any[];
+    assert.deepEqual([att2.usage.costUsd, att2.usage.reportsWithCost], [null, 0]);
   } finally { await ctx.close(); }
 });
 

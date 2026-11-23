@@ -17,7 +17,7 @@
     }
   ],
   "scenario": "live crash-after-PR recovery (S2/S4 combined)",
-  "ranAt": "2026-11-23T14:55:58.602Z",
+  "ranAt": "2026-11-23T20:33:34.549Z",
   "feltkit": "0.3.37",
   "eve": "@appport/eve 1.0.2",
   "model": "claude-sonnet-5-5",
@@ -26,7 +26,7 @@
     {
       "t": 0,
       "step": "github stub up",
-      "url": "http://127.0.0.1:44377",
+      "url": "http://127.0.0.1:37589",
       "bareRepo": true
     },
     {
@@ -37,49 +37,49 @@
     {
       "t": 3,
       "step": "delegated and assigned",
-      "delegationId": "mwte0olc0ff5cd04c600"
+      "delegationId": "mwtq2n7d0b335d6f8b04"
     },
     {
       "t": 3,
       "step": "runner A started (fault: crash after PR)"
     },
     {
-      "t": 14,
+      "t": 17,
       "step": "person signals: update coming",
       "status": 200,
       "state": "signaled"
     },
     {
-      "t": 14,
+      "t": 17,
       "step": "person submits the update",
       "status": 200,
       "state": "received",
       "sameInstruction": true
     },
     {
-      "t": 26,
+      "t": 34,
       "step": "approval requested by runner A",
       "action": "github.pr.open",
       "input": {
         "branch": "handoff/d1-g1",
-        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
         "title": "Fix negative money formatting"
       }
     },
     {
-      "t": 26,
+      "t": 34,
       "step": "person approves",
       "status": 200,
       "approvedBy": "ada"
     },
     {
-      "t": 27,
+      "t": 36,
       "step": "runner A exited",
       "code": 137,
       "signal": null
     },
     {
-      "t": 27,
+      "t": 36,
       "step": "state after A's crash",
       "state": "running",
       "report": null,
@@ -88,34 +88,34 @@
       "unknownWrite": true
     },
     {
-      "t": 27,
+      "t": 36,
       "step": "waiting for runner A's lease to expire",
       "leaseMs": 20000
     },
     {
-      "t": 49,
+      "t": 58,
       "step": "runner B started"
     },
     {
-      "t": 51,
+      "t": 60,
       "step": "runner B finished",
       "state": "verified",
       "report": {
-        "summary": "Branch handoff/d1-g1 at 88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29; PR #1.",
-        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
-        "at": 1795445756564,
+        "summary": "Branch handoff/d1-g1 at b8fdbef33896c361fb4c499513c9ac59b564536e; PR #1.",
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+        "at": 1795466012517,
         "instance": "runner-B"
       }
     },
     {
-      "t": 51,
+      "t": 60,
       "step": "verification",
       "state": "verified",
       "verified": {
         "prNumber": 1,
-        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
-        "at": 1795445757264,
-        "factId": "mwte16y12f2460d14f08"
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+        "at": 1795466013395,
+        "factId": "mwtq3cmccf3a801d1478"
       }
     }
   ],
@@ -124,21 +124,21 @@
     "pullRequestsOnGitHub": 1,
     "createRequestsReceived": 1,
     "reported": {
-      "summary": "Branch handoff/d1-g1 at 88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29; PR #1.",
-      "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
-      "at": 1795445756564,
+      "summary": "Branch handoff/d1-g1 at b8fdbef33896c361fb4c499513c9ac59b564536e; PR #1.",
+      "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+      "at": 1795466012517,
       "instance": "runner-B"
     },
     "verified": {
       "prNumber": 1,
-      "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
-      "at": 1795445757264,
-      "factId": "mwte16y12f2460d14f08"
+      "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+      "at": 1795466013395,
+      "factId": "mwtq3cmccf3a801d1478"
     },
     "review": {
       "decision": "accepted",
       "by": "ada",
-      "at": 1795445758314,
+      "at": 1795466014362,
       "note": "Reviewed the diff on the PR."
     }
   },
@@ -176,7 +176,7 @@
         "source": "runner",
         "from": "queued",
         "to": "dispatched",
-        "invocationId": "inv_a4a9c4e2624975e477cbd507478fe76517942093",
+        "invocationId": "inv_c58f515205271805b572767b8cc2259cd6f5427f",
         "generation": 1
       }
     },
@@ -190,11 +190,12 @@
         "source": "runner",
         "from": "dispatched",
         "to": "running",
-        "attempt": "att_e54cad5a33acdd20_1",
+        "attempt": "att_946dc9816d001473_1",
         "attemptNumber": 1,
         "instance": "runner-A",
         "instanceAuthenticated": false,
-        "previous": []
+        "previous": [],
+        "sessionRef": "487885fb7f00"
       }
     },
     {
@@ -204,12 +205,34 @@
       "source": "runner",
       "data": {
         "source": "runner",
-        "agentTaskId": "task-f79bc6c6-2fab-4952-b7b2-3bee87a1caaa",
+        "agentTaskId": "task-b265b151-19bf-4b98-9dfa-5392692b7e2a",
         "previous": null
       }
     },
     {
       "seq": 6,
+      "type": "session.started",
+      "actor": "runner-pool",
+      "source": "runner",
+      "instance": "runner-A",
+      "data": {
+        "source": "runner",
+        "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+        "attempt": "att_946dc9816d001473_1",
+        "instance": "runner-A",
+        "instanceAuthenticated": false,
+        "capabilities": {
+          "steer": "next-step",
+          "pause": "between-steps",
+          "interrupt": "cancel-generation",
+          "resume": "continue",
+          "stop": "cooperative",
+          "reconnect": "none"
+        }
+      }
+    },
+    {
+      "seq": 7,
       "type": "approval.requested",
       "actor": "runner-pool",
       "source": "runner",
@@ -219,12 +242,12 @@
         "to": "awaiting_approval",
         "action": "github.pr.open",
         "branch": "handoff/d1-g1",
-        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
-        "digest": "sha256:a038ace5f1f33f5b23c74466ddcaa16aa5216b2745473d34f47fb9f20e5d20c7"
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+        "digest": "sha256:1f08afa070b6202a5432b865fd6452ad3b448870e04cc6b951a46464048e8935"
       }
     },
     {
-      "seq": 7,
+      "seq": 8,
       "type": "approval.resumed",
       "actor": "runner-pool",
       "source": "runner",
@@ -233,14 +256,14 @@
         "source": "runner",
         "from": "awaiting_approval",
         "to": "running",
-        "attempt": "att_e54cad5a33acdd20_2",
+        "attempt": "att_946dc9816d001473_2",
         "instance": "runner-A",
         "instanceAuthenticated": false,
         "approvedBy": "ada"
       }
     },
     {
-      "seq": 8,
+      "seq": 9,
       "type": "github.write.unknown",
       "actor": "runner-pool",
       "source": "system",
@@ -251,20 +274,20 @@
       }
     },
     {
-      "seq": 9,
+      "seq": 10,
       "type": "github.pr.observed",
       "actor": "runner-pool",
       "source": "github",
       "data": {
         "source": "github",
         "prNumber": 1,
-        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
         "state": "open",
-        "factId": "mwte16y12f2460d14f08"
+        "factId": "mwtq3cmccf3a801d1478"
       }
     },
     {
-      "seq": 10,
+      "seq": 11,
       "type": "attempt.takeover",
       "actor": "runner-pool",
       "source": "runner",
@@ -273,36 +296,37 @@
         "source": "runner",
         "from": "running",
         "to": "running",
-        "attempt": "att_e54cad5a33acdd20_3",
+        "attempt": "att_946dc9816d001473_3",
         "attemptNumber": 3,
         "instance": "runner-B",
         "instanceAuthenticated": false,
         "previous": [
           {
-            "attempt": "att_e54cad5a33acdd20_1",
+            "attempt": "att_946dc9816d001473_1",
             "outcome": "awaiting_approval"
           },
           {
-            "attempt": "att_e54cad5a33acdd20_2",
+            "attempt": "att_946dc9816d001473_2",
             "outcome": "unknown"
           }
-        ]
+        ],
+        "sessionRef": "487885fb7f00"
       }
     },
     {
-      "seq": 11,
+      "seq": 12,
       "type": "github.pr.reconciled",
       "actor": "runner-pool",
       "source": "system",
       "data": {
         "source": "system",
         "prNumber": 1,
-        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
         "created": false
       }
     },
     {
-      "seq": 12,
+      "seq": 13,
       "type": "result.reported",
       "actor": "runner-pool",
       "source": "runner",
@@ -311,13 +335,56 @@
         "source": "runner",
         "from": "running",
         "to": "reported",
-        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
         "instance": "runner-B",
         "instanceAuthenticated": false
       }
     },
     {
-      "seq": 13,
+      "seq": 14,
+      "type": "github.diff.observed",
+      "actor": "runner-pool",
+      "source": "github",
+      "data": {
+        "source": "github",
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e"
+      }
+    },
+    {
+      "seq": 15,
+      "type": "github.commits.observed",
+      "actor": "runner-pool",
+      "source": "github",
+      "data": {
+        "source": "github",
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e"
+      }
+    },
+    {
+      "seq": 16,
+      "type": "github.checks.observed",
+      "actor": "runner-pool",
+      "source": "github",
+      "data": {
+        "source": "github",
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+        "state": "passing"
+      }
+    },
+    {
+      "seq": 17,
+      "type": "github.reviews.observed",
+      "actor": "runner-pool",
+      "source": "github",
+      "data": {
+        "source": "github",
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+        "prNumber": 1,
+        "state": "none"
+      }
+    },
+    {
+      "seq": 18,
       "type": "result.verified",
       "actor": "runner-pool",
       "source": "github",
@@ -326,12 +393,12 @@
         "from": "reported",
         "to": "verified",
         "prNumber": 1,
-        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
-        "factId": "mwte16y12f2460d14f08"
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+        "factId": "mwtq3cmccf3a801d1478"
       }
     },
     {
-      "seq": 14,
+      "seq": 19,
       "type": "review.accepted",
       "actor": "ada",
       "source": "person",
@@ -341,152 +408,459 @@
         "to": "accepted",
         "note": "Reviewed the diff on the PR.",
         "prNumber": 1,
-        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29"
+        "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e"
       }
     }
   ],
   "facts": [
     {
-      "delegationId": "mwte0olc0ff5cd04c600",
+      "delegationId": "mwtq2n7d0b335d6f8b04",
       "kind": "unknown_write",
       "via": "integration-response",
       "detail": {
         "operation": "github.pullscreate",
         "code": "OUTCOME_UNKNOWN"
       },
-      "observedAt": 1795445734232,
-      "id": "mwte16xk275a83cbff3c",
+      "observedAt": 1795465990299,
+      "id": "mwtq3cm36102d77e988e",
       "__version": 1
     },
     {
-      "delegationId": "mwte0olc0ff5cd04c600",
+      "delegationId": "mwtq2n7d0b335d6f8b04",
       "kind": "pull_request",
       "via": "read",
       "prNumber": 1,
-      "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+      "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
       "state": "open",
       "url": "https://github.test/acme/ledger/pull/1",
       "detail": {
         "duplicatesOnBranch": 0
       },
-      "observedAt": 1795445734248,
-      "id": "mwte16y12f2460d14f08",
+      "observedAt": 1795465990308,
+      "id": "mwtq3cmccf3a801d1478",
+      "__version": 1
+    },
+    {
+      "delegationId": "mwtq2n7d0b335d6f8b04",
+      "kind": "diff",
+      "via": "read",
+      "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+      "detail": {
+        "base": "dea39bac78ddb3fda7668545be9e7d6d7b159045",
+        "head": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+        "files": [
+          {
+            "filename": "src/money.js",
+            "status": "modified",
+            "additions": 5,
+            "deletions": 3,
+            "patch": "@@ -3,10 +3,12 @@ const SYMBOLS = { USD: \"$\", EUR: \"€\", GBP: \"£\" };\n /** Format integer cents as a currency string, e.g. 123456 → \"$1,234.56\". */\n export function formatMoney(cents, currency = \"USD\") {\n   const symbol = SYMBOLS[currency] ?? `${currency} `;\n-  const whole = Math.trunc(cents / 100);\n-  const frac = String(Math.abs(cents % 100)).padStart(2, \"0\");\n+  const sign = cents < 0 ? \"-\" : \"\";\n+  const abs = Math.abs(cents);\n+  const whole = Math.trunc(abs / 100);\n+  const frac = String(abs % 100).padStart(2, \"0\");\n   const grouped = String(whole).replace(/\\B(?=(\\d{3})+(?!\\d))/g, \",\");\n-  return `${symbol}${grouped}.${frac}`;\n+  return `${sign}${symbol}${grouped}.${frac}`;\n }\n \n /** Parse \"$1,234.50\", \"1234.5\" or \"-$5\" into integer cents. */\n",
+            "truncated": false
+          },
+          {
+            "filename": "test/basic.test.js",
+            "status": "modified",
+            "additions": 5,
+            "deletions": 0,
+            "patch": "@@ -6,6 +6,11 @@ test(\"formatMoney formats positive amounts\", () => {\n   assert.equal(L.formatMoney(123456), \"$1,234.56\");\n   assert.equal(L.formatMoney(5, \"EUR\"), \"€0.05\");\n });\n+test(\"formatMoney puts the minus sign before the symbol\", () => {\n+  assert.equal(L.formatMoney(-500), \"-$5.00\");\n+  assert.equal(L.formatMoney(-5), \"-$0.05\");\n+  assert.equal(L.formatMoney(-123456), \"-$1,234.56\");\n+});\n test(\"parseMoney parses common forms\", () => {\n   assert.equal(L.parseMoney(\"$1,234.50\"), 123450);\n   assert.equal(L.parseMoney(\"-$5\"), -500);\n",
+            "truncated": false
+          }
+        ]
+      },
+      "observedAt": 1795466013379,
+      "id": "mwtq3uf791e898b14e97",
+      "__version": 1
+    },
+    {
+      "delegationId": "mwtq2n7d0b335d6f8b04",
+      "kind": "commits",
+      "via": "read",
+      "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+      "detail": {
+        "commits": [
+          {
+            "sha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+            "message": "#1 Fix negative money formatting"
+          }
+        ]
+      },
+      "observedAt": 1795466013379,
+      "id": "mwtq3uf7e12eb248623f",
+      "__version": 1
+    },
+    {
+      "delegationId": "mwtq2n7d0b335d6f8b04",
+      "kind": "checks",
+      "via": "read",
+      "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+      "state": "passing",
+      "detail": {
+        "runs": [
+          {
+            "name": "test",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      },
+      "observedAt": 1795466013387,
+      "id": "mwtq3uff085bb2b1f032",
+      "__version": 1
+    },
+    {
+      "delegationId": "mwtq2n7d0b335d6f8b04",
+      "kind": "reviews",
+      "via": "read",
+      "headSha": "b8fdbef33896c361fb4c499513c9ac59b564536e",
+      "prNumber": 1,
+      "state": "none",
+      "detail": {
+        "reviews": []
+      },
+      "observedAt": 1795466013395,
+      "id": "mwtq3ufn8d4a3ca6a689",
       "__version": 1
     }
   ],
   "runnerEvents": [
     {
-      "attempt": "att_e54cad5a33acdd20_1",
+      "attempt": "att_946dc9816d001473_1",
       "instance": "runner-A",
       "seq": 1,
       "kind": "progress",
       "text": "building the EVE agent"
     },
     {
-      "attempt": "att_e54cad5a33acdd20_1",
+      "attempt": "att_946dc9816d001473_1",
       "instance": "runner-A",
       "seq": 2,
       "kind": "progress",
-      "text": "EVE session wrun_01M84EEXCT21S7T4PGR79S8PBP started"
+      "text": "EVE session wrun_01M851RX09F0Y6RWCB4XJB0QXR started",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR"
     },
     {
-      "attempt": "att_e54cad5a33acdd20_1",
+      "attempt": "att_946dc9816d001473_1",
       "instance": "runner-A",
       "seq": 3,
-      "kind": "test",
-      "text": "cat src/money.js; ls test; cat package.json"
+      "kind": "progress",
+      "text": "turn turn_0 started",
+      "status": "running",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
     },
     {
-      "attempt": "att_e54cad5a33acdd20_1",
+      "attempt": "att_946dc9816d001473_1",
       "instance": "runner-A",
       "seq": 4,
       "kind": "test",
-      "text": "python3 - <<'E'\np='src/money.js'\ns=open(p).read()\ns=s.replace(\"\"\"  const whole = Math.trunc(cents / 100);\n  const frac = String(Math.abs(cents % 100)).padStart(2, \"0\");\n\"\"\",\"\"\"  const abs = Math.abs(c"
+      "text": "cat src/money.js; ls test; cat package.json",
+      "status": "running",
+      "callId": "toolu_01JKY4gU7ybFgPGTu772pnjD",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
     },
     {
-      "attempt": "att_e54cad5a33acdd20_1",
+      "attempt": "att_946dc9816d001473_1",
       "instance": "runner-A",
       "seq": 5,
-      "kind": "progress",
-      "text": "instruction from user:ada delivered to the agent: Please also add a test case for -5 cents."
+      "kind": "test",
+      "text": "cat src/money.js; ls test; cat package.json → exit 0",
+      "status": "completed",
+      "callId": "toolu_01JKY4gU7ybFgPGTu772pnjD",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
     },
     {
-      "attempt": "att_e54cad5a33acdd20_1",
+      "attempt": "att_946dc9816d001473_1",
       "instance": "runner-A",
       "seq": 6,
-      "kind": "message",
-      "text": "I fixed `formatMoney` in `src/money.js` so negative amounts print with the minus sign first. `formatMoney(-500)` now returns `-$5.00` and `formatMoney(-5)` returns `-$0.05`. `npm test` passes, all 10 "
+      "kind": "usage",
+      "text": "7955 in, 62 out, 0 cache read; cost not reported",
+      "usage": {
+        "inputTokens": 7955,
+        "outputTokens": 62,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 7951
+      },
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
     },
     {
-      "attempt": "att_e54cad5a33acdd20_1",
+      "attempt": "att_946dc9816d001473_1",
       "instance": "runner-A",
       "seq": 7,
-      "kind": "test",
-      "text": "cat test/basic.test.js | head -30; grep -n formatMoney test/basic.test.js"
+      "kind": "progress",
+      "text": "instruction from user:ada delivered to the agent: Please also add a test case for -5 cents.",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
     },
     {
-      "attempt": "att_e54cad5a33acdd20_1",
+      "attempt": "att_946dc9816d001473_1",
       "instance": "runner-A",
       "seq": 8,
       "kind": "test",
-      "text": "python3 - <<'E'\np='test/basic.test.js'\ns=open(p).read()\ns=s.replace('''test(\"parseMoney parses common''','''test(\"formatMoney formats negative amounts\", () => {\n  assert.equal(L.formatMoney(-500), \"-$"
+      "text": "python3 - <<'E'\np='src/money.js'\ns=open(p).read()\ns=s.replace('''  const whole = Math.trunc(cents / 100);\n  const frac = String(Math.abs(cents % 100)).padStart(2, \"0\");''','''  const sign = cents < 0 ",
+      "status": "running",
+      "callId": "toolu_01CvhcTdggaddkX5M6U19Jgn",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
     },
     {
-      "attempt": "att_e54cad5a33acdd20_1",
+      "attempt": "att_946dc9816d001473_1",
       "instance": "runner-A",
       "seq": 9,
-      "kind": "message",
-      "text": "I added a test, \"formatMoney formats negative amounts\", to `test/basic.test.js`. It checks `formatMoney(-5) === \"-$0.05\"` and also `formatMoney(-500) === \"-$5.00\"`. `npm test` now passes with 11 tests"
+      "kind": "test",
+      "text": "python3 - <<'E'\np='src/money.js'\ns=open(p).read()\ns=s.replace('''  const whole = Math.trunc(cents / 100);\n  const frac = String(Math.abs(cents % 100)).padStart(2, \"0\");''','''  const sign = cents < 0 ",
+      "status": "completed",
+      "callId": "toolu_01CvhcTdggaddkX5M6U19Jgn",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
     },
     {
-      "attempt": "att_e54cad5a33acdd20_1",
+      "attempt": "att_946dc9816d001473_1",
       "instance": "runner-A",
       "seq": 10,
-      "kind": "progress",
-      "text": "branch handoff/d1-g1 at 88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29"
+      "kind": "usage",
+      "text": "8546 in, 347 out, 7951 cache read; cost not reported",
+      "usage": {
+        "inputTokens": 8546,
+        "outputTokens": 347,
+        "cacheReadTokens": 7951,
+        "cacheWriteTokens": 593
+      },
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
     },
     {
-      "attempt": "att_e54cad5a33acdd20_3",
+      "attempt": "att_946dc9816d001473_1",
+      "instance": "runner-A",
+      "seq": 11,
+      "kind": "test",
+      "text": "cat test/basic.test.js | head -30; grep -n formatMoney test/basic.test.js",
+      "status": "running",
+      "callId": "toolu_01WWkYqdtgmA6ssu1yRRqaSe",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
+    },
+    {
+      "attempt": "att_946dc9816d001473_1",
+      "instance": "runner-A",
+      "seq": 12,
+      "kind": "test",
+      "text": "cat test/basic.test.js | head -30; grep -n formatMoney test/basic.test.js → exit 0",
+      "status": "completed",
+      "callId": "toolu_01WWkYqdtgmA6ssu1yRRqaSe",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
+    },
+    {
+      "attempt": "att_946dc9816d001473_1",
+      "instance": "runner-A",
+      "seq": 13,
+      "kind": "usage",
+      "text": "9033 in, 77 out, 8544 cache read; cost not reported",
+      "usage": {
+        "inputTokens": 9033,
+        "outputTokens": 77,
+        "cacheReadTokens": 8544,
+        "cacheWriteTokens": 485
+      },
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
+    },
+    {
+      "attempt": "att_946dc9816d001473_1",
+      "instance": "runner-A",
+      "seq": 14,
+      "kind": "test",
+      "text": "python3 - <<'E'\np='test/basic.test.js'\ns=open(p).read()\ns=s.replace('''test(\"parseMoney parses common''','''test(\"formatMoney puts the minus sign before the symbol\", () => {\n  assert.equal(L.formatMon",
+      "status": "running",
+      "callId": "toolu_01W6AUqsZwDYZrMfPHz13z1F",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
+    },
+    {
+      "attempt": "att_946dc9816d001473_1",
+      "instance": "runner-A",
+      "seq": 15,
+      "kind": "test",
+      "text": "python3 - <<'E'\np='test/basic.test.js'\ns=open(p).read()\ns=s.replace('''test(\"parseMoney parses common''','''test(\"formatMoney puts the minus sign before the symbol\", () => {\n  assert.equal(L.formatMon",
+      "status": "completed",
+      "callId": "toolu_01W6AUqsZwDYZrMfPHz13z1F",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
+    },
+    {
+      "attempt": "att_946dc9816d001473_1",
+      "instance": "runner-A",
+      "seq": 16,
+      "kind": "usage",
+      "text": "9815 in, 261 out, 9029 cache read; cost not reported",
+      "usage": {
+        "inputTokens": 9815,
+        "outputTokens": 261,
+        "cacheReadTokens": 9029,
+        "cacheWriteTokens": 784
+      },
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
+    },
+    {
+      "attempt": "att_946dc9816d001473_1",
+      "instance": "runner-A",
+      "seq": 17,
+      "kind": "message",
+      "text": "`formatMoney` now prints negative amounts with the minus sign in front: `formatMoney(-500)` gives `-$5.00` and `formatMoney(-5)` gives `-$0.05`. `npm test` passes (11 tests, 0 failures).\n\n- **Fix (`sr",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
+    },
+    {
+      "attempt": "att_946dc9816d001473_1",
+      "instance": "runner-A",
+      "seq": 18,
+      "kind": "usage",
+      "text": "10099 in, 215 out, 9813 cache read; cost not reported",
+      "usage": {
+        "inputTokens": 10099,
+        "outputTokens": 215,
+        "cacheReadTokens": 9813,
+        "cacheWriteTokens": 284
+      },
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
+    },
+    {
+      "attempt": "att_946dc9816d001473_1",
+      "instance": "runner-A",
+      "seq": 19,
+      "kind": "progress",
+      "text": "turn turn_0 completed",
+      "status": "completed",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
+    },
+    {
+      "attempt": "att_946dc9816d001473_1",
+      "instance": "runner-A",
+      "seq": 20,
+      "kind": "progress",
+      "text": "branch handoff/d1-g1 at b8fdbef33896c361fb4c499513c9ac59b564536e",
+      "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+      "turn": "turn_0"
+    },
+    {
+      "attempt": "att_946dc9816d001473_3",
       "instance": "runner-B",
       "seq": 1,
       "kind": "progress",
-      "text": "recovery: previous attempts [{\"attempt\":\"att_e54cad5a33acdd20_1\",\"outcome\":\"awaiting_approval\"},{\"attempt\":\"att_e54cad5a33acdd20_2\",\"outcome\":\"unknown\"}]; remote branch 88da52d35cffdf5cb753bec1edbdfe5"
+      "text": "recovery: previous attempts [{\"attempt\":\"att_946dc9816d001473_1\",\"outcome\":\"awaiting_approval\"},{\"attempt\":\"att_946dc9816d001473_2\",\"outcome\":\"unknown\"}]; remote branch b8fdbef33896c361fb4c499513c9ac5"
     },
     {
-      "attempt": "att_e54cad5a33acdd20_3",
+      "attempt": "att_946dc9816d001473_3",
       "instance": "runner-B",
       "seq": 2,
       "kind": "progress",
-      "text": "branch handoff/d1-g1 at 88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29"
+      "text": "branch handoff/d1-g1 at b8fdbef33896c361fb4c499513c9ac59b564536e"
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": "att_946dc9816d001473_1",
+      "how": "attempt.started",
+      "instance": "runner-A",
+      "sessionRef": "487885fb7f00",
+      "sessions": [
+        {
+          "session": "(no session reported)",
+          "turns": [
+            {
+              "turn": "(no turn reported)",
+              "events": 1
+            }
+          ],
+          "events": 1
+        },
+        {
+          "session": "wrun_01M851RX09F0Y6RWCB4XJB0QXR",
+          "turns": [
+            {
+              "turn": "(no turn reported)",
+              "events": 1
+            },
+            {
+              "turn": "turn_0",
+              "events": 18
+            }
+          ],
+          "events": 19
+        }
+      ],
+      "usage": {
+        "inputTokens": 45448,
+        "outputTokens": 962,
+        "costUsd": 0,
+        "reports": 5,
+        "reportsWithCost": 0
+      },
+      "openCalls": []
+    },
+    {
+      "attempt": "att_946dc9816d001473_2",
+      "how": "approval.resumed",
+      "instance": "runner-A",
+      "sessionRef": null,
+      "sessions": [],
+      "usage": null,
+      "openCalls": []
+    },
+    {
+      "attempt": "att_946dc9816d001473_3",
+      "how": "attempt.takeover",
+      "instance": "runner-B",
+      "sessionRef": "487885fb7f00",
+      "sessions": [
+        {
+          "session": "(no session reported)",
+          "turns": [
+            {
+              "turn": "(no turn reported)",
+              "events": 2
+            }
+          ],
+          "events": 2
+        }
+      ],
+      "usage": null,
+      "openCalls": []
     }
   ],
   "invocation": {
     "attempts": [
       {
-        "id": "att_e54cad5a33acdd20_1",
+        "id": "att_946dc9816d001473_1",
         "outcome": "awaiting_approval",
         "worker": {
           "id": "runner-A",
           "via": "mcp",
-          "run": "req_01M84EEQSPQB5R1ETJXCMKP7PA"
+          "run": "req_01M851RM803BNMTKGD6RTBWMN1"
         }
       },
       {
-        "id": "att_e54cad5a33acdd20_2",
+        "id": "att_946dc9816d001473_2",
         "outcome": "unknown",
         "worker": {
           "id": "runner-A",
           "via": "mcp",
-          "run": "req_01M84EFERBZEV8FG1TD9MR849E"
+          "run": "req_01M851SM3AFT89YD95SCAGKA4Y"
         }
       },
       {
-        "id": "att_e54cad5a33acdd20_3",
+        "id": "att_946dc9816d001473_3",
         "outcome": "succeeded",
         "worker": {
           "id": "runner-B",
           "via": "mcp",
-          "run": "req_01M84EG4GB3JSQGSJRV36AJ1QV"
+          "run": "req_01M851T9R8R5EQ4Y2XDVP77SM5"
         }
       }
     ],
@@ -494,11 +868,11 @@
       "action": "github.pr.open",
       "decision": {
         "approvedBy": "ada",
-        "approvedAt": 1795445733175,
-        "digest": "sha256:a038ace5f1f33f5b23c74466ddcaa16aa5216b2745473d34f47fb9f20e5d20c7",
+        "approvedAt": 1795465988769,
+        "digest": "sha256:1f08afa070b6202a5432b865fd6452ad3b448870e04cc6b951a46464048e8935",
         "note": "Open the PR"
       }
     }
   },
-  "branchDiff": "diff --git a/src/money.js b/src/money.js\nindex ed96ecb..6b90c75 100644\n--- a/src/money.js\n+++ b/src/money.js\n@@ -3,10 +3,12 @@ const SYMBOLS = { USD: \"$\", EUR: \"€\", GBP: \"£\" };\n /** Format integer cents as a currency string, e.g. 123456 → \"$1,234.56\". */\n export function formatMoney(cents, currency = \"USD\") {\n   const symbol = SYMBOLS[currency] ?? `${currency} `;\n-  const whole = Math.trunc(cents / 100);\n-  const frac = String(Math.abs(cents % 100)).padStart(2, \"0\");\n+  const abs = Math.abs(cents);\n+  const sign = cents < 0 ? \"-\" : \"\";\n+  const whole = Math.trunc(abs / 100);\n+  const frac = String(abs % 100).padStart(2, \"0\");\n   const grouped = String(whole).replace(/\\B(?=(\\d{3})+(?!\\d))/g, \",\");\n-  return `${symbol}${grouped}.${frac}`;\n+  return `${sign}${symbol}${grouped}.${frac}`;\n }\n \n /** Parse \"$1,234.50\", \"1234.5\" or \"-$5\" into integer cents. */\ndiff --git a/test/basic.test.js b/test/basic.test.js\nindex 35c17fc..28cdee0 100644\n--- a/test/basic.test.js\n+++ b/test/basic.test.js\n@@ -6,6 +6,10 @@ test(\"formatMoney formats positive amounts\", () => {\n   assert.equal(L.formatMoney(123456), \"$1,234.56\");\n   assert.equal(L.formatMoney(5, \"EUR\"), \"€0.05\");\n });\n+test(\"formatMoney formats negative amounts\", () => {\n+  assert.equal(L.formatMoney(-500), \"-$5.00\");\n+  assert.equal(L.formatMoney(-5), \"-$0.05\");\n+});\n test(\"parseMoney parses common forms\", () => {\n   assert.equal(L.parseMoney(\"$1,234.50\"), 123450);\n   assert.equal(L.parseMoney(\"-$5\"), -500);\n"
+  "branchDiff": "diff --git a/src/money.js b/src/money.js\nindex ed96ecb..84e82e4 100644\n--- a/src/money.js\n+++ b/src/money.js\n@@ -3,10 +3,12 @@ const SYMBOLS = { USD: \"$\", EUR: \"€\", GBP: \"£\" };\n /** Format integer cents as a currency string, e.g. 123456 → \"$1,234.56\". */\n export function formatMoney(cents, currency = \"USD\") {\n   const symbol = SYMBOLS[currency] ?? `${currency} `;\n-  const whole = Math.trunc(cents / 100);\n-  const frac = String(Math.abs(cents % 100)).padStart(2, \"0\");\n+  const sign = cents < 0 ? \"-\" : \"\";\n+  const abs = Math.abs(cents);\n+  const whole = Math.trunc(abs / 100);\n+  const frac = String(abs % 100).padStart(2, \"0\");\n   const grouped = String(whole).replace(/\\B(?=(\\d{3})+(?!\\d))/g, \",\");\n-  return `${symbol}${grouped}.${frac}`;\n+  return `${sign}${symbol}${grouped}.${frac}`;\n }\n \n /** Parse \"$1,234.50\", \"1234.5\" or \"-$5\" into integer cents. */\ndiff --git a/test/basic.test.js b/test/basic.test.js\nindex 35c17fc..6b65dce 100644\n--- a/test/basic.test.js\n+++ b/test/basic.test.js\n@@ -6,6 +6,11 @@ test(\"formatMoney formats positive amounts\", () => {\n   assert.equal(L.formatMoney(123456), \"$1,234.56\");\n   assert.equal(L.formatMoney(5, \"EUR\"), \"€0.05\");\n });\n+test(\"formatMoney puts the minus sign before the symbol\", () => {\n+  assert.equal(L.formatMoney(-500), \"-$5.00\");\n+  assert.equal(L.formatMoney(-5), \"-$0.05\");\n+  assert.equal(L.formatMoney(-123456), \"-$1,234.56\");\n+});\n test(\"parseMoney parses common forms\", () => {\n   assert.equal(L.parseMoney(\"$1,234.50\"), 123450);\n   assert.equal(L.parseMoney(\"-$5\"), -500);\n"
 }
