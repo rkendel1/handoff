@@ -211,6 +211,9 @@ Each automated test runs against its own FeltDB instance and GitHub stub:
 1. **No per-runner identity on invocations (missing, E-1).** An invocation is visible only to its person and its
    deliverer.
    - *Workaround:* one shared `runner-pool` principal; instance ids recorded as asserted.
+   - *Update (T3 phase):* per-runner **sessions** under that principal give observed attribution and individual
+     revocation (verified live; see `docs/product-reference/PLATFORM-GAPS.md` PG-2). Invocation visibility and
+     roles remain per principal.
 2. **Actions can't be AppPort capabilities (constraint).**
    - *Workaround:* `runner.openPullRequest` is a mutation that performs network I/O inside a transaction. It is safe only
      because it reconciles with GitHub before creating, and because of the idempotency key.

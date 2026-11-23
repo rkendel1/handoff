@@ -128,7 +128,8 @@ const evidence = {
   timeline,
   result: { finalState: d.delegation.state, pullRequestsOnGitHub: stub.pulls.length, createRequestsReceived: stub.counts.createRequests, reported: d.delegation.report, verified: d.delegation.verified, review: d.delegation.review },
   history: d.history.map((h) => ({ seq: h.seq, type: h.type, actor: h.actor, source: h.data?.source, instance: h.data?.instance, data: h.data })),
-  facts: d.facts, runnerEvents: d.events.map((e) => ({ attempt: e.attempt, instance: e.instance, seq: e.seq, kind: e.kind, text: e.text.slice(0, 200) })),
+  facts: d.facts, runnerEvents: d.events.map((e) => ({ attempt: e.attempt, instance: e.instance, seq: e.seq, kind: e.kind, text: e.text.slice(0, 200), ...(e.status ? { status: e.status } : {}), ...(e.callId ? { callId: e.callId } : {}), ...(e.usage ? { usage: e.usage } : {}), ...(e.session ? { session: e.session } : {}), ...(e.turn ? { turn: e.turn } : {}) })),
+  attempts: (await http(ADA, "query", "work:timeline", { id })).attempts.map((a) => ({ attempt: a.attempt, how: a.how, instance: a.instance, sessionRef: a.sessionRef, sessions: a.sessions, usage: a.usage, openCalls: a.openCalls })),
   invocation: { attempts: d.invocation?.executions?.[0]?.attempts?.map((a) => ({ id: a.id, outcome: a.outcome, worker: a.worker })), approval: d.invocation?.approval && { action: d.invocation.approval.action, decision: d.invocation.approval.decision } },
   branchDiff: diff,
 };
