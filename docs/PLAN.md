@@ -13,6 +13,17 @@ Platform APIs were confirmed against the installed `@feltdb/feltkit` **0.3.37** 
 | Primary repository `felt-ops` | The owner supplied `rkendel1/handoff` (empty) mid-task | Handoff lives here. felt-ops keeps discovery and evidence only. The CompanyOS app in felt-ops (`^0.3.34`) is untouched |
 | GitHub write flows "tested" | Phase 0 S4 tested writes only against a local GitHub-API stub. Real GitHub writes were not authorized | Writes still go through `app.integration`. Automated and live write tests use the stub, and so does the demo, because the brief forbids changing external services. Reads are tested live (read-only) |
 
+## GitHub layer decision
+
+The owner asked to use `@appport/github` (1.0.2), then withdrew the request after review. It was not used, for these
+reasons:
+- It opens its own FeltDB 0.11.9 store.
+- It has no idempotency or unknown-outcome handling.
+- It is not a FeltKit/AppPort provider.
+- It pins platform versions far older than 0.3.37.
+
+Handoff uses FeltKit's `app.integration` (Phase 0 S4).
+
 ## Deployment model (v1)
 
 One Handoff deployment is one workspace (no FeltKit tenancy in v1). One trusted runner pool shares
