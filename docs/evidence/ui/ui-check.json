@@ -1,9 +1,24 @@
 {
-  "ranAt": "2026-11-23T14:54:53.099Z",
+  "ranAt": "2026-11-23T20:24:24.977Z",
   "feltkit": "0.3.37",
   "results": [
     {
       "name": "running: Update coming, Pause, Interrupt, Stop enabled",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "execution shows the attempt with its EVE session and turns, runner asserted",
+      "ok": true,
+      "detail": "Attempt 1 · started running runner ui-check Asserted · 8:24:20 PM · 3 event(s) EVE session ses_ui1 · turn_1 (2) · turn_2 (1)"
+    },
+    {
+      "name": "timeline labels trust: person decisions and runner reports",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "timeline filters by layer",
       "ok": true,
       "detail": ""
     },
@@ -46,6 +61,41 @@
       "name": "the runner's next report is refused after Stop",
       "ok": true,
       "detail": "CLAIM_LOST"
+    },
+    {
+      "name": "desk: the approval waits under 'Awaiting your approval', with the reason",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "controls the runtime declares 'none' are disabled with the reason",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "approval given in the UI lets exactly one PR open",
+      "ok": true,
+      "detail": "{\"created\":true,\"prNumber\":1,\"headSha\":\"abc1230000\"}"
+    },
+    {
+      "name": "source control shows PR, checks, reviews, commits and the diff, read from GitHub",
+      "ok": true,
+      "detail": "Source control Observed on GitHub Read GitHub now PULL REQUEST  #1 · open open on GitHub head abc1230000 · observed 0 s "
+    },
+    {
+      "name": "agents: runners listed with runtime, work and capabilities, labelled asserted",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "settings: connection check reads the repository from GitHub",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "settings: policy change recorded with who changed it",
+      "ok": true,
+      "detail": ""
     }
   ]
 }

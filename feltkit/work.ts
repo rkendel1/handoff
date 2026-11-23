@@ -5,7 +5,7 @@
 import { fail, s } from "@feltdb/feltkit";
 import { ref } from "@feltdb/feltkit/client";
 import { agents, app, delegations, facts, history, repositories, runEvents, sync } from "./app.js";
-import { branchFor, load, now, repoOf, requirePerson, transition } from "./_lib.js";
+import { branchFor, load, note, now, repoOf, requirePerson, transition } from "./_lib.js";
 
 export const create = app.mutation({
   access: "work.create",
@@ -81,6 +81,31 @@ export const cancel = app.mutation({
       if (!["completed", "failed", "cancelled"].includes(inv.state)) await ctx.invocations.cancel(d.invocationId, { reason });
     }
     await transition(ctx, d, "cancelled", "person", "delegation.cancelled", { reason, invocationId: d.invocationId ?? null });
+  },
+});
+
+/**
+ * Record a person's approval decision in Handoff's history after FeltKit has taken it.
+ * The decision itself is FeltKit's (POST /api/invocations/:id/approve|reject); this reads it back from
+ * FeltKit and records what FeltKit says, never what the caller says. Invocation state is not in the
+ * live-query change feed (platform gap), so without this record open views would keep showing the request.
+ */
+export const recordApprovalDecision = app.mutation({
+  access: "work.read",
+  args: { id: s.string() },
+  handler: async (ctx, { id }) => {
+    requirePerson(ctx, "record an approval decision");
+    const d = await load(ctx, id);
+    if (!d.invocationId) fail("FAILED_PRECONDITION", "Not delivered.");
+    const approval = (await ctx.invocations.get(d.invocationId)).approval;
+    const outcome = approval?.decision ? "approved" : approval?.rejection ? "rejected" : null;
+    if (!approval || !outcome) return { recorded: false, reason: "FeltKit shows no decision" };
+    const trail = await history.history(ctx, "delegation", id);
+    if (trail.some((h) => h.type === "approval.decided" && (h.data as { digest?: string }).digest === approval.digest)) return { recorded: false, reason: "already recorded" };
+    const by = approval.decision?.approvedBy ?? approval.rejection?.rejectedBy ?? null;
+    await ctx.db.patch(delegations, d.id, { updatedAt: now() });
+    await note(ctx, id, "person", "approval.decided", { outcome, by, digest: approval.digest, ...(approval.rejection?.reason ? { reason: approval.rejection.reason } : {}), readFrom: "feltkit.invocation" });
+    return { recorded: true, outcome };
   },
 });
 
@@ -163,7 +188,7 @@ export const timeline = app.query({
     const entries: Entry[] = [];
     const LAYER: Record<string, string> = {
       "delegation.created": "delegation", "delegation.assigned": "delegation", "delegation.dispatched": "generation", "review.returned": "decision", "review.accepted": "decision", "review.rejected": "decision", "delegation.cancelled": "decision",
-      "attempt.started": "attempt", "attempt.takeover": "attempt", "attempt.failed": "attempt", "attempts.exhausted": "attempt", "approval.resumed": "decision", "approval.requested": "approval",
+      "attempt.started": "attempt", "attempt.takeover": "attempt", "attempt.failed": "attempt", "attempts.exhausted": "attempt", "approval.resumed": "decision", "approval.requested": "approval", "approval.decided": "decision",
       "session.started": "session", "steering.task-bound": "control", "result.reported": "evidence", "result.verified": "fact", "verification.mismatch": "fact",
       "github.write.unknown": "fact", "github.pr.created": "fact", "github.pr.reconciled": "fact",
     };

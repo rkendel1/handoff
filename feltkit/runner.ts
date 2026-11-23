@@ -12,10 +12,11 @@
 import { fail, s } from "@feltdb/feltkit";
 import type { MutationCtx, QueryCtx } from "@feltdb/feltkit";
 import { agents, app, delegations, facts, runEvents, workers } from "./app.js";
-import { RUNTIME_CAPABILITIES, invocationKey, load, note, now, policyOf, repoOf, transition } from "./_lib.js";
+import { RUNTIME_CAPABILITIES, invocationKey, load, note, now, policyOf, redact, repoOf, transition } from "./_lib.js";
 
 const leaseWithin = (ms: number, p: { leaseMinMs: number; leaseMaxMs: number }) => Math.min(p.leaseMaxMs, Math.max(p.leaseMinMs, Math.round(ms)));
-const capabilitiesOf = (declared: Record<string, string>) => Object.fromEntries(Object.entries(declared).filter(([k, v]) => k in RUNTIME_CAPABILITIES && (RUNTIME_CAPABILITIES as Record<string, readonly string[]>)[k]!.includes(v)));
+/** Every known control gets a value; anything undeclared or unrecognized is "none" (unsupported), never trusted. */
+const capabilitiesOf = (declared: Record<string, string>) => Object.fromEntries(Object.entries(RUNTIME_CAPABILITIES as Record<string, readonly string[]>).map(([k, allowed]) => [k, allowed.includes(declared[k] ?? "") ? declared[k]! : "none"]));
 
 function requireRunner(ctx: QueryCtx | MutationCtx) {
   const p = ctx.auth.requirePrincipal();
@@ -139,7 +140,7 @@ export const report = app.mutation({
     for (const e of events) {
       const [seen] = await ctx.db.find(runEvents, { attempt, seq: e.seq });
       if (seen) { duplicates++; continue; }
-      await ctx.db.insert(runEvents, { delegationId, attempt, instance, seq: e.seq, kind: e.kind, text: e.text.slice(0, 4000), at: e.at, receivedAt: now(), ...(e.session ? { session: e.session } : {}), ...(e.turn ? { turn: e.turn } : {}), ...(e.status ? { status: e.status } : {}) });
+      await ctx.db.insert(runEvents, { delegationId, attempt, instance, seq: e.seq, kind: e.kind, text: redact(e.text).slice(0, 4000), at: e.at, receivedAt: now(), ...(e.session ? { session: e.session } : {}), ...(e.turn ? { turn: e.turn } : {}), ...(e.status ? { status: e.status } : {}) });
       accepted++;
     }
     if (runtime) {
@@ -208,7 +209,8 @@ export const submit = app.mutation({
   args: { delegationId: s.string(), claim: s.string(), instance: s.string(), summary: s.string({ maxLength: 4000 }), headSha: s.string() },
   returns: s.boolean(),
   capability: { name: "runner.submit", description: "Report the work done (a claim; GitHub verification follows)." },
-  handler: async (ctx, { delegationId, claim, instance, summary, headSha }) => {
+  handler: async (ctx, { delegationId, claim, instance, summary: said, headSha }) => {
+    const summary = redact(said);
     requireRunner(ctx);
     const d = await load(ctx, delegationId);
     await ctx.invocations.transition(d.invocationId!, "completed", { claim, result: { headSha, branch: d.branch } });
@@ -224,7 +226,8 @@ export const failAttempt = app.mutation({
   args: { delegationId: s.string(), claim: s.string(), code: s.string(), message: s.string(), effect: s.enum(["none", "possible"]) },
   returns: s.boolean(),
   capability: { name: "runner.fail", description: "Report that the attempt failed." },
-  handler: async (ctx, { delegationId, claim, code, message, effect }) => {
+  handler: async (ctx, { delegationId, claim, code, message: said, effect }) => {
+    const message = redact(said);
     requireRunner(ctx);
     const d = await load(ctx, delegationId);
     await ctx.invocations.transition(d.invocationId!, "failed", { claim, error: { code: effect === "possible" ? "OUTCOME_UNKNOWN" : code, message } });
@@ -263,7 +266,7 @@ export const heartbeat = app.mutation({
     requireRunner(ctx);
     const at = now();
     const [w] = await ctx.db.find(workers, { instance: a.instance });
-    const record = { ...a, capabilities: capabilitiesOf(a.capabilities), lastSeenAt: at };
+    const record = { ...a, ...(a.lastError ? { lastError: redact(a.lastError) } : {}), capabilities: capabilitiesOf(a.capabilities), lastSeenAt: at };
     if (w) await ctx.db.replace(workers, w.id, { ...record, firstSeenAt: w.firstSeenAt });
     else await ctx.db.insert(workers, { ...record, firstSeenAt: at });
     return true;

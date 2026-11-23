@@ -182,3 +182,52 @@ button.danger { color: #c0392b; }
 .hint { margin: 0; opacity: 0.75; font-size: 0.9em; }
 .instructions li { align-items: baseline; }
 @media (prefers-color-scheme: dark) { .ctl:not(.primary):not(.danger), .composer { background: transparent; color: inherit; } }
+
+/* Handoff product areas: Desk, Work detail, Agents, Settings */
+.card-head { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; margin-bottom: 8px; }
+.card-head h3 { margin: 0; }
+.push { margin-left: auto; }
+.desk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.tone { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.tone.attention { background: var(--warn); }
+.tone.danger { background: var(--danger); }
+.trust { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; cursor: help; }
+.trust.reported { border-style: dashed; }
+.trust.observed { color: var(--accent); border-color: var(--accent); }
+.trust.verified { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.trust.decided { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.trust.asserted { border-style: dotted; }
+.danger-text { color: var(--danger); }
+.stepper { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; padding: 0; margin: 0; font-size: 13px; }
+.stepper li { padding: 3px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.stepper li.done { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-soft); }
+.stepper li.current { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.stepper li.current.off { background: var(--danger); border-color: var(--danger); }
+.attempts { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.attempts > li { border-left: 3px solid var(--line); padding-left: 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.attempts .events, .attempts .session { flex-basis: 100%; }
+button.link { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font-weight: 600; }
+.sc-grid { display: grid; grid-template-columns: minmax(220px, 1fr) 2fr; gap: 18px; }
+@media (max-width: 760px) { .sc-grid { grid-template-columns: 1fr; } }
+.sc-grid h4 { margin: 10px 0 4px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+details.file { border: 1px solid var(--line); border-radius: 8px; margin: 4px 0; }
+details.file summary { padding: 6px 10px; cursor: pointer; }
+pre.diff { margin: 0; padding: 8px 10px; overflow-x: auto; font-size: 12px; line-height: 1.45; border-top: 1px solid var(--line); }
+pre.diff .add, .add { color: var(--accent); }
+pre.diff .del, .del { color: var(--danger); }
+pre.diff .hunk { color: var(--muted); }
+.claims td { vertical-align: top; width: 50%; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); background: transparent; cursor: pointer; color: var(--muted); }
+.chip.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.timeline { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.tl { display: grid; grid-template-columns: 80px 72px auto 1fr; gap: 8px; align-items: baseline; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.tl .layer { font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; }
+.tl .detail { grid-column: 4; color: var(--muted); overflow-wrap: anywhere; }
+@media (max-width: 640px) { .tl { grid-template-columns: 1fr; } .tl .detail { grid-column: 1; } }
+.cap { display: inline-block; margin: 1px 4px 1px 0; padding: 0 6px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
+.cap.off { background: transparent; color: var(--muted); text-decoration: line-through; }
+.cap-val { margin-right: 6px; }
+.policy label { max-width: 520px; }
+.ctl:disabled { opacity: 0.45; cursor: not-allowed; }
+.badge.stale { background: var(--warn-soft); color: var(--warn); }

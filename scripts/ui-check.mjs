@@ -41,6 +41,29 @@ const task = await pool.call("feltkit.agent.create", { objective: "Use EU data o
 const taskId = task.task.task_id;
 await pool.call("runner.bindtask", { delegationId: id, claim: c.claim, agentTaskId: taskId });
 
+const CAPS = { steer: "next-step", pause: "between-steps", interrupt: "cancel-generation", resume: "continue", stop: "cooperative", reconnect: "none" };
+await pool.call("runner.heartbeat", { instance: "ui-check", state: "working", runtime: { name: "eve", version: "@appport/eve 1.0.2", node: "v24" }, capabilities: CAPS, delegationId: id, session: "ses_ui1" });
+await pool.call("runner.report", { delegationId: id, claim: c.claim, instance: "ui-check", events: [
+  { seq: 1, kind: "progress", text: "Reading the report builder", at: Date.now(), session: "ses_ui1", turn: "turn_1" },
+  { seq: 2, kind: "tool", text: "bash: npm test", at: Date.now(), session: "ses_ui1", turn: "turn_1", status: "completed" },
+  { seq: 3, kind: "message", text: "Switching the data source", at: Date.now(), session: "ses_ui1", turn: "turn_2" },
+], runtime: { session: "ses_ui1", turn: "turn_2", mode: "running", capabilities: CAPS } });
+
+// A second delegation whose runtime declares it cannot pause or interrupt, and later goes through approval and a PR.
+const id2 = await http(ADA, "mutation", "work:create", { title: "Fix negative money formatting", objective: "formatMoney(-500) must print -$5.00.", criteria: ["Existing tests pass"], repositoryId });
+await http(ADA, "mutation", "work:assign", { id: id2, agentKey: "coder" });
+await pool.call("runner.deliver", { delegationId: id2 });
+const c2 = await pool.call("runner.claim", { delegationId: id2, instance: "ui-check-2", leaseMs: 600_000 });
+const task2 = await pool.call("feltkit.agent.create", { objective: "money", playbook: "handoff" });
+await pool.call("runner.bindtask", { delegationId: id2, claim: c2.claim, agentTaskId: task2.task.task_id });
+await pool.call("runner.report", { delegationId: id2, claim: c2.claim, instance: "ui-check-2", events: [{ seq: 1, kind: "progress", text: "editing format.ts", at: Date.now(), session: "ses_ui2", turn: "turn_1" }], runtime: { session: "ses_ui2", turn: "turn_1", mode: "running", capabilities: { ...CAPS, pause: "none", interrupt: "none", steer: "none" } } });
+const branch2 = c2.snapshot.delegation.branch;
+stub.setBranch(branch2, "abc1230000");
+const PATCH = ["@@ -1,3 +1,6 @@", " export function formatMoney(cents) {", "-  return '$' + (cents / 100).toFixed(2);", "+  const sign = cents < 0 ? '-' : '';", "+  const abs = Math.abs(cents);", "+  return sign + '$' + (abs / 100).toFixed(2);", " }"].join("\n");
+stub.setFiles("abc1230000", [{ filename: "src/format.ts", status: "modified", additions: 3, deletions: 1, patch: PATCH }]);
+stub.setChecks([{ name: "test", status: "completed", conclusion: "success" }]);
+await pool.call("runner.requestapproval", { delegationId: id2, claim: c2.claim, branch: branch2, headSha: "abc1230000", title: "Fix negative money formatting" });
+
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport: { width: 1100, height: 1300 }, deviceScaleFactor: 2 })).newPage();
 page.on("console", (m) => { if (m.type() === "error") console.log("BROWSER", m.text()); });
@@ -51,6 +74,16 @@ await page.waitForSelector(".phase.running");
 const panel = page.locator("section.card", { has: page.locator(".agent-control") });
 await panel.screenshot({ path: join(out, "01-running.png") });
 check("running: Update coming, Pause, Interrupt, Stop enabled", await page.locator('.ctl-bar button[aria-label="Pause"]').isEnabled() && await page.locator('.ctl-bar button[aria-label="Interrupt"]').isEnabled() && await page.locator('.ctl-bar button[aria-label="Stop"]').isEnabled());
+
+const attemptsText = await page.locator("ol.attempts").innerText();
+check("execution shows the attempt with its EVE session and turns, runner asserted",
+  /ses_ui1/.test(attemptsText) && /turn_1 \(2\) · turn_2 \(1\)/.test(attemptsText) && (await page.locator("ol.attempts .trust.asserted").count()) > 0, attemptsText.replace(/\n/g, " ").slice(0, 160));
+check("timeline labels trust: person decisions and runner reports",
+  (await page.locator("ol.timeline .tl.delegation .trust.decided").count()) > 0 && (await page.locator("ol.timeline .tl.activity .trust.reported").count()) === 3);
+await page.locator(".chips button", { hasText: "activity" }).click();
+check("timeline filters by layer", (await page.locator("ol.timeline li").count()) === 3);
+await page.locator(".chips button", { hasText: /^all$/ }).click();
+await page.screenshot({ path: join(out, "08-work-detail.png"), fullPage: true });
 
 // Typing signals "update coming"; the agent keeps working.
 await page.locator(".composer textarea").fill("Use EU data only; drop the US figures.");
@@ -95,7 +128,52 @@ await panel.screenshot({ path: join(out, "06-stopped.png") });
 const refused = await pool.call("runner.report", { delegationId: id, claim: c.claim, instance: "ui-check", events: [] }).then(() => "accepted", (e) => e.code);
 check("the runner's next report is refused after Stop", refused !== "accepted", refused);
 
-await page.goto(`${URL_}/#desk`); await sleep(800); await page.screenshot({ path: join(out, "07-desk.png") });
+await page.goto(`${URL_}/#desk`);
+await page.waitForSelector('ul[data-group="awaitingApproval"] li');
+check("desk: the approval waits under 'Awaiting your approval', with the reason", /asks you to approve/.test(await page.locator('ul[data-group="awaitingApproval"]').innerText()));
+await page.screenshot({ path: join(out, "07-desk.png"), fullPage: true });
+
+await page.goto(`${URL_}/#work/${id2}`);
+await page.waitForSelector(".agent-control");
+await page.locator(".composer textarea").fill("x");
+check("controls the runtime declares 'none' are disabled with the reason",
+  await page.locator('.ctl-bar button[aria-label="Pause"]').isDisabled()
+  && /not supported by this agent's runtime/.test(await page.locator('.ctl-bar button[aria-label="Interrupt"]').getAttribute("title"))
+  && await page.locator('.composer-actions button[aria-label="Send update"]').isDisabled());
+await page.locator(".composer textarea").fill("");
+await page.getByRole("button", { name: "Approve" }).click();
+await page.waitForFunction(() => !document.body.innerText.includes("Approval needed"), null, { timeout: 15_000 });
+const r2 = await pool.call("runner.resume", { delegationId: id2, instance: "ui-check-2", leaseMs: 600_000 });
+const pr2 = await pool.call("runner.openpullrequest", { delegationId: id2, claim: r2.claim, headSha: "abc1230000", body: "Fixes negative amounts." });
+check("approval given in the UI lets exactly one PR open", pr2.created === true && stub.counts.pullsCreated === 1, JSON.stringify(pr2));
+stub.setReviews(pr2.prNumber, [{ state: "APPROVED", user: { login: "lin" }, submitted_at: new Date().toISOString() }]);
+await page.getByRole("button", { name: "Read GitHub now" }).click();
+await page.waitForSelector("details.file", { timeout: 15_000 });
+await page.waitForFunction(() => /lin: APPROVED/.test(document.body.innerText), null, { timeout: 15_000 });
+await page.locator("details.file summary").first().click();
+const scCard = page.locator("section.card", { has: page.locator(".sc-grid") });
+const sc = await scCard.innerText();
+check("source control shows PR, checks, reviews, commits and the diff, read from GitHub",
+  /#\d+/.test(sc) && /passing/.test(sc) && /lin: APPROVED/.test(sc) && /src\/format\.ts/.test(sc) && /Math\.abs/.test(sc), sc.slice(0, 120).replace(/\n/g, " "));
+await scCard.screenshot({ path: join(out, "09-source-control.png") });
+
+await page.goto(`${URL_}/#agents`);
+await page.waitForSelector("table.workers tr[data-instance=ui-check]");
+check("agents: runners listed with runtime, work and capabilities, labelled asserted",
+  /eve/.test(await page.locator("table.workers").innerText()) && /Use EU data only/.test(await page.locator("tr[data-instance=ui-check]").innerText()) && (await page.locator(".cap.off").count()) > 0);
+await page.screenshot({ path: join(out, "10-agents.png"), fullPage: true });
+
+await page.goto(`${URL_}/#settings`);
+await page.waitForSelector('tr[data-repo="acme/ledger"]');
+await page.locator('tr[data-repo="acme/ledger"] button').click();
+await page.waitForFunction(() => /GitHub: acme\/ledger/.test(document.body.innerText), null, { timeout: 10_000 });
+check("settings: connection check reads the repository from GitHub", true);
+await page.locator('input[name="maxAttempts"]').fill("2");
+await page.getByRole("button", { name: "Save policy" }).click();
+await page.waitForFunction(() => /changed by ada/.test(document.body.innerText), null, { timeout: 10_000 });
+check("settings: policy change recorded with who changed it", true);
+await page.screenshot({ path: join(out, "11-settings.png"), fullPage: true });
+
 await browser.close(); await stub.close();
 writeFileSync(join(out, "ui-check.json"), JSON.stringify({ ranAt: new Date().toISOString(), feltkit: "0.3.37", results }, null, 2) + "\n");
 const ok = results.every((r) => r.ok);

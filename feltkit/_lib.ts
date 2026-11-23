@@ -68,7 +68,7 @@ export const DEFAULT_POLICY = { maxAttempts: 3, leaseMinMs: 2_000, leaseMaxMs: 6
 
 export async function policyOf(ctx: QueryCtx | MutationCtx) {
   const [p] = await ctx.db.find(policy, { key: "workspace" });
-  return { maxAttempts: p?.maxAttempts ?? DEFAULT_POLICY.maxAttempts, leaseMinMs: p?.leaseMinMs ?? DEFAULT_POLICY.leaseMinMs, leaseMaxMs: p?.leaseMaxMs ?? DEFAULT_POLICY.leaseMaxMs };
+  return { maxAttempts: p?.maxAttempts ?? DEFAULT_POLICY.maxAttempts, leaseMinMs: p?.leaseMinMs ?? DEFAULT_POLICY.leaseMinMs, leaseMaxMs: p?.leaseMaxMs ?? DEFAULT_POLICY.leaseMaxMs, updatedBy: p?.updatedBy ?? null, updatedAt: p?.updatedAt ?? null };
 }
 
 /**
@@ -83,3 +83,16 @@ export const RUNTIME_CAPABILITIES = {
   stop: ["cooperative", "none"],
   reconnect: ["resume-session", "none"],
 } as const;
+
+/**
+ * Runner-supplied text is stored and shown to people, so credential-shaped strings are masked at the
+ * boundary where Handoff accepts it (not trusted to the runner). Best effort over known token formats.
+ */
+const SECRET_PATTERNS: Array<[RegExp, string]> = [
+  [/\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})/g, "[redacted]"],
+  [/\bsk-(?:ant-)?[A-Za-z0-9_-]{16,}/g, "[redacted]"],
+  [/\bAKIA[0-9A-Z]{16}\b/g, "[redacted]"],
+  [/\b(Bearer|token)\s+[A-Za-z0-9._~+/=-]{16,}/gi, "$1 [redacted]"],
+  [/(https?:\/\/)[^\s/:@]+:[^\s/@]+@/g, "$1[redacted]@"],
+];
+export const redact = (text: string) => SECRET_PATTERNS.reduce((t, [p, r]) => t.replace(p, r), text);

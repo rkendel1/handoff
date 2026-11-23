@@ -55,7 +55,14 @@ function Btn({ kind, icon, label, showLabel, disabled, onClick, title }: { kind:
 }
 
 /** The control bar and the update composer, for one agent task. */
-export function AgentControl({ taskId, canStop, onStop, report }: { taskId: string; canStop: boolean; onStop: () => Promise<unknown>; report: (e: unknown) => void }) {
+/**
+ * `capabilities` is what the runtime running this task declared (runner heartbeat/claim, asserted).
+ * A control the runtime declares "none" is disabled with the reason; an empty map (no runner yet)
+ * leaves every control available, because FeltKit records the instruction either way.
+ */
+export function AgentControl({ taskId, capabilities = {}, canStop, onStop, report }: { taskId: string; capabilities?: Record<string, string>; canStop: boolean; onStop: () => Promise<unknown>; report: (e: unknown) => void }) {
+  const unsupported = (k: string) => capabilities[k] === "none";
+  const why = (k: string, label: string) => (unsupported(k) ? `${label} is not supported by this agent's runtime` : undefined);
   const { control, error } = useAgentControl(taskId);
   const [text, setText] = useState("");
   const [pending, setPending] = useState<string | null>(null); // our signaled instruction
@@ -81,11 +88,12 @@ export function AgentControl({ taskId, canStop, onStop, report }: { taskId: stri
     try { await op(taskId, "submit", { text: text.trim(), ...(pending ? { instructionId: pending } : {}) }); setText(""); setPending(null); } catch (e) { report(e); }
   };
   const pauseOrResume = mode === "running"
-    ? <Btn kind="plain" icon={Icon.pause} label="Pause" disabled={stopped} onClick={() => void run(op(taskId, "pause", { reason: "paused from Handoff" }))} />
-    : <Btn kind="plain" icon={Icon.play} label="Resume" disabled={stopped} onClick={() => void run(op(taskId, "resume", {}))} />;
-  const interrupt = <Btn kind="plain" icon={Icon.bolt} label="Interrupt" title="Interrupt: cancel the agent's current model step now (a running tool finishes)" disabled={stopped || mode === "interrupted"} onClick={() => void run(op(taskId, "interrupt", { reason: "interrupted from Handoff" }))} />;
+    ? <Btn kind="plain" icon={Icon.pause} label="Pause" title={why("pause", "Pause")} disabled={stopped || unsupported("pause")} onClick={() => void run(op(taskId, "pause", { reason: "paused from Handoff" }))} />
+    : <Btn kind="plain" icon={Icon.play} label="Resume" title={why("resume", "Resume")} disabled={stopped || unsupported("resume")} onClick={() => void run(op(taskId, "resume", {}))} />;
+  const interrupt = <Btn kind="plain" icon={Icon.bolt} label="Interrupt" title={why("interrupt", "Interrupt") ?? "Interrupt: cancel the agent's current model step now (a running tool finishes)"} disabled={stopped || mode === "interrupted" || unsupported("interrupt")} onClick={() => void run(op(taskId, "interrupt", { reason: "interrupted from Handoff" }))} />;
   const stop = <Btn kind="danger" icon={Icon.stop} label="Stop" title={canStop ? "Stop: end the agent's work and cancel this delegation" : "Only the person who delegated this work can stop it"} disabled={stopped || !canStop} onClick={() => { if (confirm("Stop the agent and cancel this delegation? Work already pushed stays on the branch.")) void run(onStop()); }} />;
-  const hint = pending
+  const hint = unsupported("steer") ? "This agent's runtime does not take updates while it works. Stop it, or request changes after it reports."
+    : pending
     ? "The agent knows an update is coming and keeps working. It takes your update at its next checkpoint."
     : mode === "paused" ? "The agent is paused: it starts nothing new. It takes your update at its next checkpoint, after you resume."
     : mode === "interrupted" ? "Interrupted: the current model step was cancelled. Resume to let the agent continue."
@@ -104,7 +112,7 @@ export function AgentControl({ taskId, canStop, onStop, report }: { taskId: stri
           onChange={(e) => change(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit(); }} />
         <div className="composer-row">
           <span className={`signal-mark${pending ? " on" : ""}`} title={pending ? "Update coming: the agent knows" : "Start typing to tell the agent an update is coming"}><Svg d={Icon.pencil} /></span>
-          <div className="composer-actions">{pauseOrResume}{interrupt}{stop}<Btn kind="primary" icon={Icon.up} label="Send update" disabled={stopped || !text.trim()} onClick={() => void submit()} /></div>
+          <div className="composer-actions">{pauseOrResume}{interrupt}{stop}<Btn kind="primary" icon={Icon.up} label="Send update" title={why("steer", "Sending updates")} disabled={stopped || !text.trim() || unsupported("steer")} onClick={() => void submit()} /></div>
         </div>
       </div>
       <p className="hint">{error ?? hint}</p>
