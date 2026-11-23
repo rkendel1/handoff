@@ -215,7 +215,19 @@ export const timeline = app.query({
         const turns = [...new Set(inSession.map((e) => e.turn ?? "(no turn reported)"))].map((turn) => ({ turn, events: inSession.filter((e) => (e.turn ?? "(no turn reported)") === turn).length }));
         return { session, turns, events: inSession.length };
       });
-      return { attempt, how: h.type, instance: String(data.instance ?? ""), instanceAuthenticated: false, at: h.at, previous: data.previous ?? [], sessions, events: mine.length };
+      // Usage as reported by EVE through the runner; a cost total only covers the reports that carried a cost.
+      const usageEvents = mine.filter((e) => e.usage);
+      const usage = usageEvents.length === 0 ? null : {
+        inputTokens: usageEvents.reduce((n, e) => n + e.usage!.inputTokens, 0),
+        outputTokens: usageEvents.reduce((n, e) => n + e.usage!.outputTokens, 0),
+        costUsd: usageEvents.reduce((n, e) => n + (e.usage!.costUsd ?? 0), 0),
+        reports: usageEvents.length,
+        reportsWithCost: usageEvents.filter((e) => typeof e.usage!.costUsd === "number").length,
+      };
+      // Tool calls the runner reported started and has not reported settled (by EVE call id).
+      const settledCalls = new Set(mine.filter((e) => e.callId && e.status !== "running").map((e) => e.callId));
+      const openCalls = mine.filter((e) => e.callId && e.status === "running" && !settledCalls.has(e.callId)).map((e) => ({ callId: e.callId!, kind: e.kind, text: e.text, at: e.at }));
+      return { attempt, how: h.type, instance: String(data.instance ?? ""), instanceAuthenticated: false, sessionRef: typeof data.sessionRef === "string" ? data.sessionRef : null, at: h.at, previous: data.previous ?? [], sessions, events: mine.length, usage, openCalls };
     });
     return { delegation: { id: d.id, number: d.number, state: d.state, generation: d.generation, branch: d.branch }, attempts, entries };
   },

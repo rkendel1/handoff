@@ -205,7 +205,7 @@ button.danger { color: #c0392b; }
 .stepper li.current.off { background: var(--danger); border-color: var(--danger); }
 .attempts { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .attempts > li { border-left: 3px solid var(--line); padding-left: 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
-.attempts .events, .attempts .session { flex-basis: 100%; }
+.attempts .events, .attempts .session, .attempts .usage, .attempts .running-calls { flex-basis: 100%; }
 button.link { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font-weight: 600; }
 .sc-grid { display: grid; grid-template-columns: minmax(220px, 1fr) 2fr; gap: 18px; }
 @media (max-width: 760px) { .sc-grid { grid-template-columns: 1fr; } }

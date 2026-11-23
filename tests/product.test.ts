@@ -210,3 +210,24 @@ test("an approval decision is recorded in Handoff from FeltKit's record, not fro
     assert.equal(await code(ctx.runner.mutation(api.work.recordApprovalDecision, { id })), "FORBIDDEN");
   } finally { await ctx.close(); }
 });
+
+test("tool calls link start to settlement by EVE call id, and usage keeps its provenance", async () => {
+  const ctx = await boot();
+  try {
+    const { id } = await delegated(ctx);
+    const a = await claimAs(ctx, id, "r1");
+    const at = Date.now();
+    const u = (input: number, output: number, costUsd?: number) => ({ inputTokens: input, outputTokens: output, cacheReadTokens: 0, cacheWriteTokens: 0, ...(costUsd === undefined ? {} : { costUsd }) });
+    await ctx.runner.mutation(api.runner.report, { delegationId: id, claim: a.claim!, instance: "r1", events: [
+      { seq: 1, kind: "command", text: "npm test", at, status: "running", callId: "call_1" },
+      { seq: 2, kind: "command", text: "npm run build", at, status: "running", callId: "call_2" },
+      { seq: 3, kind: "command", text: "npm test → exit 0", at, status: "completed", callId: "call_1" },
+      { seq: 4, kind: "usage", text: "usage", at, usage: u(1000, 200, 0.012) },
+      { seq: 5, kind: "usage", text: "usage", at, usage: u(500, 100) },
+    ] });
+    const [att] = (await ctx.person.query(api.work.timeline, { id })).attempts as any[];
+    assert.deepEqual(att.openCalls.map((c: any) => c.callId), ["call_2"], "only the call with no settlement is open");
+    assert.deepEqual([att.usage.inputTokens, att.usage.outputTokens, att.usage.reports, att.usage.reportsWithCost], [1500, 300, 2, 1]);
+    assert.equal(Math.round(att.usage.costUsd * 1000), 12, "cost sums only what the provider reported");
+  } finally { await ctx.close(); }
+});

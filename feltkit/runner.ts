@@ -11,7 +11,7 @@
  */
 import { fail, s } from "@feltdb/feltkit";
 import type { MutationCtx, QueryCtx } from "@feltdb/feltkit";
-import { agents, app, delegations, facts, runEvents, workers } from "./app.js";
+import { EVENT_KINDS, USAGE, agents, app, delegations, facts, runEvents, workers } from "./app.js";
 import { RUNTIME_CAPABILITIES, invocationKey, load, note, now, policyOf, redact, repoOf, transition } from "./_lib.js";
 
 const leaseWithin = (ms: number, p: { leaseMinMs: number; leaseMaxMs: number }) => Math.min(p.leaseMaxMs, Math.max(p.leaseMinMs, Math.round(ms)));
@@ -125,7 +125,7 @@ export const report = app.mutation({
   access: "runner.work",
   args: {
     delegationId: s.string(), claim: s.string(), instance: s.string(),
-    events: s.array(s.object({ seq: s.number(), kind: s.enum(["progress", "tool", "command", "test", "message", "warning", "error"]), text: s.string(), at: s.number(), session: s.optional(s.string()), turn: s.optional(s.string()), status: s.optional(s.string()) })),
+    events: s.array(s.object({ seq: s.number(), kind: s.enum(EVENT_KINDS), text: s.string(), at: s.number(), session: s.optional(s.string()), turn: s.optional(s.string()), status: s.optional(s.string()), callId: s.optional(s.string()), usage: s.optional(USAGE) })),
     runtime: s.optional(s.object({ session: s.optional(s.string()), turn: s.optional(s.string()), mode: s.optional(s.string()), capabilities: s.record(s.string()) })),
   },
   returns: s.object({ leaseUntil: s.number(), accepted: s.number(), duplicates: s.number() }),
@@ -141,7 +141,7 @@ export const report = app.mutation({
     for (const e of events) {
       const [seen] = await ctx.db.find(runEvents, { attempt, seq: e.seq });
       if (seen) { duplicates++; continue; }
-      await ctx.db.insert(runEvents, { delegationId, attempt, instance, seq: e.seq, kind: e.kind, text: redact(e.text).slice(0, 4000), at: e.at, receivedAt: now(), ...(e.session ? { session: e.session } : {}), ...(e.turn ? { turn: e.turn } : {}), ...(e.status ? { status: e.status } : {}) });
+      await ctx.db.insert(runEvents, { delegationId, attempt, instance, seq: e.seq, kind: e.kind, text: redact(e.text).slice(0, 4000), at: e.at, receivedAt: now(), ...(e.session ? { session: e.session } : {}), ...(e.turn ? { turn: e.turn } : {}), ...(e.status ? { status: e.status } : {}), ...(e.callId ? { callId: e.callId } : {}), ...(e.usage ? { usage: e.usage } : {}) });
       accepted++;
     }
     if (runtime) {

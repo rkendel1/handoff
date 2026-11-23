@@ -212,7 +212,14 @@ async function execute({ snap, a, taskId, clone, branch, dir }) {
             const c = calls.get(f.data?.callId) ?? { kind: "tool", text: "tool call" };
             const exit = f.data?.output?.exitCode;
             const failed = f.data?.outcome !== "completed" || (typeof exit === "number" && exit !== 0);
-            a.add(c.kind, `${c.text}${typeof exit === "number" ? ` → exit ${exit}` : ""}${failed && f.data?.output?.stderr ? `: ${String(f.data.output.stderr).slice(0, 300)}` : ""}`, { status: failed ? "failed" : "completed" });
+            a.add(c.kind, `${c.text}${typeof exit === "number" ? ` → exit ${exit}` : ""}${failed && f.data?.output?.stderr ? `: ${String(f.data.output.stderr).slice(0, 300)}` : ""}`, { status: failed ? "failed" : "completed", ...(f.data?.callId ? { callId: String(f.data.callId) } : {}) });
+          }
+          if (f.type === "call.started") { const c = calls.get(f.data?.callId); if (c) a.add(c.kind, c.text, { status: "running", callId: String(f.data.callId) }); }
+          // Usage as EVE reports it: tokens always; cost only when the provider reported one (never estimated here).
+          if (f.type === "usage.recorded" && f.data?.usage) {
+            const u = f.data.usage;
+            const usage = { inputTokens: u.inputTokens, outputTokens: u.outputTokens, cacheReadTokens: u.cacheReadTokens ?? 0, cacheWriteTokens: u.cacheWriteTokens ?? 0, ...(typeof u.costUsd === "number" ? { costUsd: u.costUsd } : {}) };
+            a.add("usage", `${usage.inputTokens} in, ${usage.outputTokens} out, ${usage.cacheReadTokens} cache read; ${typeof u.costUsd === "number" ? `$${u.costUsd.toFixed(4)} reported by the provider` : "cost not reported"}`, { usage });
           }
           if (f.type === "content.completed" && f.data?.kind !== "reasoning" && f.data?.value) { lastText = String(f.data.value); a.add("message", lastText); }
         }

@@ -94,14 +94,21 @@ export const delegations = app.collection("delegations", {
 }, { unique: [["number"]], indexes: [{ fields: ["state"] }, { fields: ["requestedBy"] }] });
 
 /** What a runner says happened. Evidence of activity, never authority. Idempotent on (attempt, seq). */
+export const EVENT_KINDS = ["progress", "tool", "command", "test", "message", "warning", "error", "usage"] as const;
+/** Token usage as EVE reports it (usage.recorded); costUsd only when the provider reported a cost. */
+export const USAGE = s.object({ inputTokens: s.number(), outputTokens: s.number(), cacheReadTokens: s.number(), cacheWriteTokens: s.number(), costUsd: s.optional(s.number()) });
+
 export const runEvents = app.collection("runEvents", {
   delegationId: s.string(),
   attempt: s.string(),
   /** Self-reported runner instance id (asserted, not authenticated). */
   instance: s.string(),
   seq: s.number(),
-  kind: s.enum(["progress", "tool", "command", "test", "message", "warning", "error"]),
+  kind: s.enum(EVENT_KINDS),
   text: s.string({ maxLength: 4000 }),
+  /** EVE's call id, linking a tool call's start and settlement. */
+  callId: s.optional(s.string()),
+  usage: s.optional(USAGE),
   /** The runtime session (EVE session id) and turn this event belongs to, as the runner reports them. */
   session: s.optional(s.string()),
   turn: s.optional(s.string()),
