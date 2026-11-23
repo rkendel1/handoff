@@ -26,7 +26,7 @@ export const app = feltkit({
     // `delegation` surface. It never holds work.review or any approval permission.
     runner: ["runner.*", "github.read", "github.write", "github.sync", "jobs.create", "jobs.execute", "feltkit.agent.*", "handoff.placed", "agents.read", "repos.read"],
   },
-  auth: { accounts: { roles: ["member"], signUp: false } },
+  auth: { accounts: { roles: ["member"], signUp: false }, onSessionEnd: "runner:sessionEnded" },
   dev: {
     users: [
       { id: "ada", name: "Ada (delegator, admin)", roles: ["member", "admin"] },
@@ -125,6 +125,13 @@ export const workers = app.collection("workers", {
   attempt: s.optional(s.string()),
   session: s.optional(s.string()),
   lastError: s.optional(s.string()),
+  /**
+   * The FeltKit session the heartbeat arrived on (ctx.auth.session.ref): observed by the server, not asserted.
+   * Distinguishes runners that hold separate pool sessions; it is not a separate principal (all share runner-pool).
+   */
+  sessionRef: s.optional(s.string()),
+  /** Set when FeltKit ends that session (auth.onSessionEnd): revoked, expired, signed out or rotated. */
+  sessionEnded: s.optional(s.object({ reason: s.string(), at: s.number() })),
   firstSeenAt: s.number(),
   lastSeenAt: s.number(),
 }, { unique: [["instance"]] });

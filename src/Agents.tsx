@@ -47,8 +47,8 @@ export function Agents({ report }: { report: (e: unknown) => void }) {
               const d = w.delegationId ? list?.find((x) => x.id === w.delegationId) : undefined;
               return (
                 <tr key={w.id} data-instance={w.instance}>
-                  <td><code>{w.instance}</code></td>
-                  <td><Badge state={stale ? "stale" : w.state} />{w.lastError && <div className="small danger-text">{w.lastError}</div>}</td>
+                  <td><code>{w.instance}</code><div className="muted small">{w.sessionRef ? <>session <code title="The FeltKit session this runner's calls arrive on: observed by Handoff's server, revocable on its own with feltkit session revoke">{w.sessionRef.slice(0, 14)}</code></> : "no session ref"}</div></td>
+                  <td><Badge state={w.sessionEnded ? `session ${w.sessionEnded.reason}` : stale ? "stale" : w.state} />{w.lastError && <div className="small danger-text">{w.lastError}</div>}</td>
                   <td>{w.runtime.name} {w.runtime.version}<div className="muted small">node {w.runtime.node}{w.runtime.model ? ` · ${w.runtime.model}` : ""}</div></td>
                   <td>{d ? <a href={`#work/${d.id}`}>#{d.number} {d.title}</a> : w.delegationId ? <code>{w.delegationId}</code> : <span className="muted">idle</span>}{w.session && <div className="muted small">session <code>{w.session}</code></div>}</td>
                   <td>{ago(w.lastSeenAt)}</td>
@@ -57,7 +57,7 @@ export function Agents({ report }: { report: (e: unknown) => void }) {
               );
             })}</tbody></table>
         )}
-        <p className="muted small">One trusted pool shares the <code>runner-pool</code> identity. Instance ids, runtime versions and capabilities are what each runner says about itself; Handoff cannot attribute or revoke one runner. A runner is shown stale after {STALE_MS / 1000} s without a heartbeat. Ownership of work is decided by FeltKit leases, not by this list.</p>
+        <p className="muted small">One trusted pool shares the <code>runner-pool</code> identity. Instance ids, runtime versions and capabilities are what each runner says about itself. The session column is observed: give each runner its own pool session and it can be revoked alone. It is still the same principal, so every runner can see every pool invocation; claims and leases keep them from acting on each other's attempts. A runner is shown stale after {STALE_MS / 1000} s without a heartbeat. Ownership of work is decided by FeltKit leases, not by this list.</p>
       </Section>
     </div>
   );

@@ -91,6 +91,7 @@ export const claim = app.mutation({
     const uncertain = started.previous?.some((p) => p.outcome === "unknown") ?? false;
     await transition(ctx, d, "running", "runner", uncertain ? "attempt.takeover" : "attempt.started", {
       attempt: started.attemptId, attemptNumber: started.attempt, instance, instanceAuthenticated: false, previous: started.previous ?? [],
+      ...(ctx.auth.session?.ref ? { sessionRef: ctx.auth.session.ref } : {}),
     });
     return { proceed: true, claim: started.claim, attemptId: started.attemptId, attemptNumber: started.attempt, previous: started.previous ?? [], snapshot: await snapshotOf(ctx, delegationId) };
   },
@@ -266,9 +267,25 @@ export const heartbeat = app.mutation({
     requireRunner(ctx);
     const at = now();
     const [w] = await ctx.db.find(workers, { instance: a.instance });
-    const record = { ...a, ...(a.lastError ? { lastError: redact(a.lastError) } : {}), capabilities: capabilitiesOf(a.capabilities), lastSeenAt: at };
+    const sessionRef = ctx.auth.session?.ref;
+    const record = { ...a, ...(a.lastError ? { lastError: redact(a.lastError) } : {}), capabilities: capabilitiesOf(a.capabilities), ...(sessionRef ? { sessionRef } : {}), lastSeenAt: at };
     if (w) await ctx.db.replace(workers, w.id, { ...record, firstSeenAt: w.firstSeenAt });
     else await ctx.db.insert(workers, { ...record, firstSeenAt: at });
     return true;
+  },
+});
+
+/**
+ * FeltKit's auth.onSessionEnd hook, run as the ending session's principal. A runner whose pool session was
+ * revoked (or expired) is marked so on Agents; its claims stop at their next fenced call, because FeltKit
+ * refuses the revoked token. People's sessions ending changes nothing here.
+ */
+export const sessionEnded = app.mutation({
+  access: "authenticated",
+  args: { session: s.string(), reason: s.string() },
+  handler: async (ctx, { session, reason }) => {
+    if (ctx.auth.requirePrincipal().type === "user") return null;
+    for (const w of await ctx.db.find(workers, { sessionRef: session } as never)) await ctx.db.patch(workers, w.id, { sessionEnded: { reason, at: now() } });
+    return null;
   },
 });

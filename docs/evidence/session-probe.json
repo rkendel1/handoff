@@ -1,0 +1,31 @@
+{
+  "ranAt": "2026-11-23T20:26:37.787Z",
+  "feltkit": "0.3.37",
+  "results": [
+    {
+      "name": "two sessions for the one runner-pool principal coexist",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Handoff observes a distinct session ref per runner",
+      "ok": true,
+      "detail": "{\"a\":\"92fb9d5ceb19\",\"b\":\"97fa34c91ffc\"}"
+    },
+    {
+      "name": "the observed refs are FeltKit's session refs",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "revoking one runner's session stops that runner only",
+      "ok": true,
+      "detail": "{\"a\":\"UNAUTHORIZED\",\"b\":\"accepted\"}"
+    },
+    {
+      "name": "auth.onSessionEnd marks the revoked runner on Agents",
+      "ok": true,
+      "detail": "{\"reason\":\"revoked\",\"at\":1795465597431}"
+    }
+  ]
+}
