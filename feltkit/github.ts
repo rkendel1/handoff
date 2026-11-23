@@ -11,7 +11,7 @@
  *   - An unknown write outcome is recorded as unknown and verified by a read; it is never assumed.
  *   - Polling (jobs), not webhooks: AppPort inbound webhooks refuse GitHub's signature format.
  */
-import { fail, isFeltKitError, s } from "@feltdb/feltkit";
+import { fail, s } from "@feltdb/feltkit";
 import type { MutationCtx } from "@feltdb/feltkit";
 import { app, delegations, facts, sync } from "./app.js";
 import { load, note, now, repoOf, transition } from "./_lib.js";
@@ -89,12 +89,14 @@ export const openPullRequest = app.mutation({
     try {
       await ctx.integrations.invoke("github.pullscreate", { owner: repo.owner, repo: repo.name, title: `#${d.number} ${d.title}`.slice(0, 250), head: d.branch, base: d.baseBranch, body }, { idempotencyKey: `pr-${d.id}-g${d.generation}` });
     } catch (error) {
-      const reason = isFeltKitError(error) ? String((error as { details?: { reason?: string } }).details?.reason ?? "") : "";
-      const unknown = isFeltKitError(error) && (error.code === "OUTCOME_UNKNOWN" || reason === "IDEMPOTENCY_OUTCOME_UNKNOWN" || /OUTCOME_UNKNOWN/.test(error.message));
+      // FeltKit's OUTCOME_UNKNOWN, or AppPort's idempotency guard refusing to re-send an unknown call.
+      const e = error as { code?: string; message?: string; details?: { reason?: string } };
+      const reason = String(e.details?.reason ?? "");
+      const unknown = e.code === "OUTCOME_UNKNOWN" || reason === "IDEMPOTENCY_OUTCOME_UNKNOWN" || /OUTCOME_UNKNOWN|without a known outcome/.test(String(e.message));
       if (!unknown) throw error;
       // Unknown: record it, then verify by reading. Never assume either way.
-      await ctx.db.insert(facts, { delegationId, kind: "unknown_write", via: "integration-response", detail: { operation: "github.pullscreate", code: reason || error.code }, observedAt: now() });
-      await note(ctx, d.id, "system", "github.write.unknown", { operation: "github.pullscreate", code: reason || error.code });
+      await ctx.db.insert(facts, { delegationId, kind: "unknown_write", via: "integration-response", detail: { operation: "github.pullscreate", code: reason || String(e.code) }, observedAt: now() });
+      await note(ctx, d.id, "system", "github.write.unknown", { operation: "github.pullscreate", code: reason || String(e.code) });
       const verified = await observe(ctx, delegationId).catch(() => null);
       if (verified?.pr) return { created: true, verifiedAfterUnknown: true, prNumber: verified.pr.number, headSha: verified.pr.head.sha };
       return { created: null, outcome: "unknown", message: "The request was sent but its outcome is unknown and GitHub does not show a pull request yet. Reconcile before retrying." };
