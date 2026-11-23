@@ -231,3 +231,29 @@ test("tool calls link start to settlement by EVE call id, and usage keeps its pr
     assert.equal(Math.round(att.usage.costUsd * 1000), 12, "cost sums only what the provider reported");
   } finally { await ctx.close(); }
 });
+
+test("a pull request closed on GitHub without merging is never verified or accepted, and no second PR is opened", async () => {
+  const ctx = await boot();
+  try {
+    const { id, invocationId } = await delegated(ctx);
+    const a = await claimAs(ctx, id, "r1");
+    const branch = a.snapshot!.delegation.branch;
+    ctx.stub.setBranch(branch, "c1");
+    await ctx.runner.mutation(api.runner.requestApproval, { delegationId: id, claim: a.claim!, branch, headSha: "c1", title: "t" });
+    await approve(ctx, invocationId);
+    const r = (await ctx.runner.mutation(api.runner.resume, { delegationId: id, instance: "r1", leaseMs: 60_000 })) as { claim: string };
+    await ctx.runner.mutation(api.github.openPullRequest, { delegationId: id, claim: r.claim, headSha: "c1", body: "x" });
+    await ctx.runner.mutation(api.runner.submit, { delegationId: id, claim: r.claim, instance: "r1", summary: "done", headSha: "c1" });
+    assert.equal(((await ctx.person.mutation(api.github.verify, { delegationId: id })) as { verified: boolean }).verified, true);
+    // A reviewer closes the PR on GitHub without merging.
+    ctx.stub.pulls[0]!.state = "closed";
+    const again = (await ctx.person.mutation(api.github.verify, { delegationId: id })) as { verified: boolean; reason?: string };
+    assert.deepEqual([again.verified, again.reason], [false, "the pull request was closed on GitHub without merging"]);
+    assert.equal(await code(ctx.person.mutation(api.work.review, { id, decision: "accepted", note: "ship it" })), "FAILED_PRECONDITION");
+    assert.equal(ctx.stub.counts.pullsCreated, 1, "no second PR");
+    // Request changes: a new generation, a new branch.
+    await ctx.person.mutation(api.work.review, { id, decision: "returned", note: "Reopened as a fresh attempt" });
+    const d = (await ctx.person.query(api.work.detail, { id })).delegation;
+    assert.deepEqual([d.state, d.generation, d.branch.endsWith("-g2")], ["queued", 2, true]);
+  } finally { await ctx.close(); }
+});

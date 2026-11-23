@@ -124,6 +124,8 @@ export const review = app.mutation({
     if (decision === "accepted") {
       if (d.state !== "verified" || !d.verified || !d.report || d.verified.headSha !== d.report.headSha)
         fail("FAILED_PRECONDITION", "Only verified work can be accepted: GitHub must show a pull request whose head is the commit the runner reported.");
+      const pr = (await ctx.db.find(facts, { delegationId: id, kind: "pull_request" })).sort((a, b) => b.observedAt - a.observedAt)[0];
+      if (pr?.state === "closed") fail("FAILED_PRECONDITION", "GitHub last showed this pull request closed without merging. Read GitHub again, or request changes.");
       return transition(ctx, d, "accepted", "person", "review.accepted", { note, prNumber: d.verified.prNumber, headSha: d.verified.headSha }, { review });
     }
     if (decision === "rejected") return transition(ctx, d, "rejected", "person", "review.rejected", { note }, { review });
@@ -190,7 +192,7 @@ export const timeline = app.query({
       "delegation.created": "delegation", "delegation.assigned": "delegation", "delegation.dispatched": "generation", "review.returned": "decision", "review.accepted": "decision", "review.rejected": "decision", "delegation.cancelled": "decision",
       "attempt.started": "attempt", "attempt.takeover": "attempt", "attempt.failed": "attempt", "attempts.exhausted": "attempt", "approval.resumed": "decision", "approval.requested": "approval", "approval.decided": "decision",
       "session.started": "session", "steering.task-bound": "control", "result.reported": "evidence", "result.verified": "fact", "verification.mismatch": "fact",
-      "github.write.unknown": "fact", "github.pr.created": "fact", "github.pr.reconciled": "fact",
+      "github.write.unknown": "fact", "verification.closed": "fact", "github.pr.created": "fact", "github.pr.reconciled": "fact",
     };
     let generation = 1;
     for (const h of trail) {

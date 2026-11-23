@@ -183,6 +183,12 @@ async function verifyOne(ctx: MutationCtx, delegationId: string) {
   await observeSourceControl(ctx, delegationId, pr);
   if (!["reported", "verified"].includes(d.state) || !d.report) return { verified: false, reason: `delegation is ${d.state}` };
   if (!pr || !factId) return { verified: false, reason: "no pull request on GitHub for the branch" };
+  if (pr.state === "closed" && pr.merged !== true) {
+    // Someone closed it on GitHub without merging. Handoff does not open a second PR for this generation:
+    // the delegator decides (request changes starts a new generation and branch; reject ends it).
+    await note(ctx, d.id, "github", "verification.closed", { prNumber: pr.number, headSha: pr.head.sha });
+    return { verified: false, reason: "the pull request was closed on GitHub without merging" };
+  }
   if (pr.head.sha !== d.report.headSha) {
     await note(ctx, d.id, "github", "verification.mismatch", { reported: d.report.headSha, observed: pr.head.sha, prNumber: pr.number });
     return { verified: false, reason: "the pull request's head is not the reported commit" };
