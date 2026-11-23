@@ -1,0 +1,10 @@
+{
+  "name": "handoff-runner",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Handoff's execution worker: claims delegations from Handoff over MCP and runs them with EVE in a Docker sandbox.",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "bin": { "handoff-runner": "src/runner.mjs" },
+  "scripts": { "start": "node src/runner.mjs", "setup": "cd agent && npx -y pnpm@10 install" }
+}

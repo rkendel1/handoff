@@ -247,3 +247,22 @@ test("import a GitHub issue: title and body come from GitHub", async () => {
     assert.deepEqual([d.title, d.issueNumber, d.state], ["Money formatting is wrong for negatives", 7, "draft"]);
   } finally { await ctx.close(); }
 });
+
+test("the verification job queued at submit runs as the pool and verifies on its own (FeltKit jobs)", async () => {
+  const ctx = await boot();
+  try {
+    const { id, invocationId } = await delegated(ctx);
+    const a = await claimAs(ctx, id, "r1");
+    const branch = a.snapshot!.delegation.branch;
+    ctx.stub.setBranch(branch, "j1");
+    await ctx.runner.mutation(api.runner.requestApproval, { delegationId: id, claim: a.claim!, branch, headSha: "j1", title: "t" });
+    await approve(ctx, invocationId);
+    const r = (await ctx.runner.mutation(api.runner.resume, { delegationId: id, instance: "r1", leaseMs: 60_000 })) as { claim: string };
+    await ctx.runner.mutation(api.github.openPullRequest, { delegationId: id, claim: r.claim, headSha: "j1", body: "x" });
+    await ctx.runner.mutation(api.runner.submit, { delegationId: id, claim: r.claim, instance: "r1", summary: "done", headSha: "j1" });
+    const ran = await ctx.t.runtime.runServices();
+    assert.ok(ran.jobs >= 1, `the queued github.sync job ran: ${JSON.stringify(ran)}`);
+    assert.equal((await ctx.person.query(api.work.detail, { id })).delegation.state, "verified");
+    assert.ok((await ctx.person.query(api.admin.settings, {})).githubSync?.lastOkAt);
+  } finally { await ctx.close(); }
+});

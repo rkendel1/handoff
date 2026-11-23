@@ -1,0 +1,504 @@
+{
+  "steering": [
+    {
+      "state": "incorporated",
+      "text": "Please also add a test case for -5 cents.",
+      "from": "user:ada",
+      "history": [
+        "signaled by user:ada",
+        "received by user:ada",
+        "delivered by service:runner-pool",
+        "incorporated by service:runner-pool"
+      ],
+      "resolution": {
+        "by": "service:runner-pool",
+        "note": "Delivered to the EVE session; it is taken into account from the agent's next step."
+      }
+    }
+  ],
+  "scenario": "live crash-after-PR recovery (S2/S4 combined)",
+  "ranAt": "2026-11-23T14:55:58.602Z",
+  "feltkit": "0.3.37",
+  "eve": "@appport/eve 1.0.2",
+  "model": "claude-sonnet-5-5",
+  "github": "local GitHub-API stub over a real bare git repository (real GitHub writes not authorized)",
+  "timeline": [
+    {
+      "t": 0,
+      "step": "github stub up",
+      "url": "http://127.0.0.1:44377",
+      "bareRepo": true
+    },
+    {
+      "t": 3,
+      "step": "handoff up; sessions issued",
+      "feltkit": "0.3.37"
+    },
+    {
+      "t": 3,
+      "step": "delegated and assigned",
+      "delegationId": "mwte0olc0ff5cd04c600"
+    },
+    {
+      "t": 3,
+      "step": "runner A started (fault: crash after PR)"
+    },
+    {
+      "t": 14,
+      "step": "person signals: update coming",
+      "status": 200,
+      "state": "signaled"
+    },
+    {
+      "t": 14,
+      "step": "person submits the update",
+      "status": 200,
+      "state": "received",
+      "sameInstruction": true
+    },
+    {
+      "t": 26,
+      "step": "approval requested by runner A",
+      "action": "github.pr.open",
+      "input": {
+        "branch": "handoff/d1-g1",
+        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+        "title": "Fix negative money formatting"
+      }
+    },
+    {
+      "t": 26,
+      "step": "person approves",
+      "status": 200,
+      "approvedBy": "ada"
+    },
+    {
+      "t": 27,
+      "step": "runner A exited",
+      "code": 137,
+      "signal": null
+    },
+    {
+      "t": 27,
+      "step": "state after A's crash",
+      "state": "running",
+      "report": null,
+      "pullsOnGitHub": 1,
+      "createRequests": 1,
+      "unknownWrite": true
+    },
+    {
+      "t": 27,
+      "step": "waiting for runner A's lease to expire",
+      "leaseMs": 20000
+    },
+    {
+      "t": 49,
+      "step": "runner B started"
+    },
+    {
+      "t": 51,
+      "step": "runner B finished",
+      "state": "verified",
+      "report": {
+        "summary": "Branch handoff/d1-g1 at 88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29; PR #1.",
+        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+        "at": 1795445756564,
+        "instance": "runner-B"
+      }
+    },
+    {
+      "t": 51,
+      "step": "verification",
+      "state": "verified",
+      "verified": {
+        "prNumber": 1,
+        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+        "at": 1795445757264,
+        "factId": "mwte16y12f2460d14f08"
+      }
+    }
+  ],
+  "result": {
+    "finalState": "accepted",
+    "pullRequestsOnGitHub": 1,
+    "createRequestsReceived": 1,
+    "reported": {
+      "summary": "Branch handoff/d1-g1 at 88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29; PR #1.",
+      "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+      "at": 1795445756564,
+      "instance": "runner-B"
+    },
+    "verified": {
+      "prNumber": 1,
+      "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+      "at": 1795445757264,
+      "factId": "mwte16y12f2460d14f08"
+    },
+    "review": {
+      "decision": "accepted",
+      "by": "ada",
+      "at": 1795445758314,
+      "note": "Reviewed the diff on the PR."
+    }
+  },
+  "history": [
+    {
+      "seq": 1,
+      "type": "delegation.created",
+      "actor": "ada",
+      "source": "person",
+      "data": {
+        "source": "person",
+        "title": "Fix negative money formatting",
+        "repository": "acme/ledger",
+        "issueNumber": null
+      }
+    },
+    {
+      "seq": 2,
+      "type": "delegation.assigned",
+      "actor": "ada",
+      "source": "person",
+      "data": {
+        "source": "person",
+        "from": "draft",
+        "to": "queued",
+        "agentKey": "coder"
+      }
+    },
+    {
+      "seq": 3,
+      "type": "delegation.dispatched",
+      "actor": "runner-pool",
+      "source": "runner",
+      "data": {
+        "source": "runner",
+        "from": "queued",
+        "to": "dispatched",
+        "invocationId": "inv_a4a9c4e2624975e477cbd507478fe76517942093",
+        "generation": 1
+      }
+    },
+    {
+      "seq": 4,
+      "type": "attempt.started",
+      "actor": "runner-pool",
+      "source": "runner",
+      "instance": "runner-A",
+      "data": {
+        "source": "runner",
+        "from": "dispatched",
+        "to": "running",
+        "attempt": "att_e54cad5a33acdd20_1",
+        "attemptNumber": 1,
+        "instance": "runner-A",
+        "instanceAuthenticated": false,
+        "previous": []
+      }
+    },
+    {
+      "seq": 5,
+      "type": "steering.task-bound",
+      "actor": "runner-pool",
+      "source": "runner",
+      "data": {
+        "source": "runner",
+        "agentTaskId": "task-f79bc6c6-2fab-4952-b7b2-3bee87a1caaa",
+        "previous": null
+      }
+    },
+    {
+      "seq": 6,
+      "type": "approval.requested",
+      "actor": "runner-pool",
+      "source": "runner",
+      "data": {
+        "source": "runner",
+        "from": "running",
+        "to": "awaiting_approval",
+        "action": "github.pr.open",
+        "branch": "handoff/d1-g1",
+        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+        "digest": "sha256:a038ace5f1f33f5b23c74466ddcaa16aa5216b2745473d34f47fb9f20e5d20c7"
+      }
+    },
+    {
+      "seq": 7,
+      "type": "approval.resumed",
+      "actor": "runner-pool",
+      "source": "runner",
+      "instance": "runner-A",
+      "data": {
+        "source": "runner",
+        "from": "awaiting_approval",
+        "to": "running",
+        "attempt": "att_e54cad5a33acdd20_2",
+        "instance": "runner-A",
+        "instanceAuthenticated": false,
+        "approvedBy": "ada"
+      }
+    },
+    {
+      "seq": 8,
+      "type": "github.write.unknown",
+      "actor": "runner-pool",
+      "source": "system",
+      "data": {
+        "source": "system",
+        "operation": "github.pullscreate",
+        "code": "OUTCOME_UNKNOWN"
+      }
+    },
+    {
+      "seq": 9,
+      "type": "github.pr.observed",
+      "actor": "runner-pool",
+      "source": "github",
+      "data": {
+        "source": "github",
+        "prNumber": 1,
+        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+        "state": "open",
+        "factId": "mwte16y12f2460d14f08"
+      }
+    },
+    {
+      "seq": 10,
+      "type": "attempt.takeover",
+      "actor": "runner-pool",
+      "source": "runner",
+      "instance": "runner-B",
+      "data": {
+        "source": "runner",
+        "from": "running",
+        "to": "running",
+        "attempt": "att_e54cad5a33acdd20_3",
+        "attemptNumber": 3,
+        "instance": "runner-B",
+        "instanceAuthenticated": false,
+        "previous": [
+          {
+            "attempt": "att_e54cad5a33acdd20_1",
+            "outcome": "awaiting_approval"
+          },
+          {
+            "attempt": "att_e54cad5a33acdd20_2",
+            "outcome": "unknown"
+          }
+        ]
+      }
+    },
+    {
+      "seq": 11,
+      "type": "github.pr.reconciled",
+      "actor": "runner-pool",
+      "source": "system",
+      "data": {
+        "source": "system",
+        "prNumber": 1,
+        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+        "created": false
+      }
+    },
+    {
+      "seq": 12,
+      "type": "result.reported",
+      "actor": "runner-pool",
+      "source": "runner",
+      "instance": "runner-B",
+      "data": {
+        "source": "runner",
+        "from": "running",
+        "to": "reported",
+        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+        "instance": "runner-B",
+        "instanceAuthenticated": false
+      }
+    },
+    {
+      "seq": 13,
+      "type": "result.verified",
+      "actor": "runner-pool",
+      "source": "github",
+      "data": {
+        "source": "github",
+        "from": "reported",
+        "to": "verified",
+        "prNumber": 1,
+        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+        "factId": "mwte16y12f2460d14f08"
+      }
+    },
+    {
+      "seq": 14,
+      "type": "review.accepted",
+      "actor": "ada",
+      "source": "person",
+      "data": {
+        "source": "person",
+        "from": "verified",
+        "to": "accepted",
+        "note": "Reviewed the diff on the PR.",
+        "prNumber": 1,
+        "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29"
+      }
+    }
+  ],
+  "facts": [
+    {
+      "delegationId": "mwte0olc0ff5cd04c600",
+      "kind": "unknown_write",
+      "via": "integration-response",
+      "detail": {
+        "operation": "github.pullscreate",
+        "code": "OUTCOME_UNKNOWN"
+      },
+      "observedAt": 1795445734232,
+      "id": "mwte16xk275a83cbff3c",
+      "__version": 1
+    },
+    {
+      "delegationId": "mwte0olc0ff5cd04c600",
+      "kind": "pull_request",
+      "via": "read",
+      "prNumber": 1,
+      "headSha": "88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29",
+      "state": "open",
+      "url": "https://github.test/acme/ledger/pull/1",
+      "detail": {
+        "duplicatesOnBranch": 0
+      },
+      "observedAt": 1795445734248,
+      "id": "mwte16y12f2460d14f08",
+      "__version": 1
+    }
+  ],
+  "runnerEvents": [
+    {
+      "attempt": "att_e54cad5a33acdd20_1",
+      "instance": "runner-A",
+      "seq": 1,
+      "kind": "progress",
+      "text": "building the EVE agent"
+    },
+    {
+      "attempt": "att_e54cad5a33acdd20_1",
+      "instance": "runner-A",
+      "seq": 2,
+      "kind": "progress",
+      "text": "EVE session wrun_01M84EEXCT21S7T4PGR79S8PBP started"
+    },
+    {
+      "attempt": "att_e54cad5a33acdd20_1",
+      "instance": "runner-A",
+      "seq": 3,
+      "kind": "test",
+      "text": "cat src/money.js; ls test; cat package.json"
+    },
+    {
+      "attempt": "att_e54cad5a33acdd20_1",
+      "instance": "runner-A",
+      "seq": 4,
+      "kind": "test",
+      "text": "python3 - <<'E'\np='src/money.js'\ns=open(p).read()\ns=s.replace(\"\"\"  const whole = Math.trunc(cents / 100);\n  const frac = String(Math.abs(cents % 100)).padStart(2, \"0\");\n\"\"\",\"\"\"  const abs = Math.abs(c"
+    },
+    {
+      "attempt": "att_e54cad5a33acdd20_1",
+      "instance": "runner-A",
+      "seq": 5,
+      "kind": "progress",
+      "text": "instruction from user:ada delivered to the agent: Please also add a test case for -5 cents."
+    },
+    {
+      "attempt": "att_e54cad5a33acdd20_1",
+      "instance": "runner-A",
+      "seq": 6,
+      "kind": "message",
+      "text": "I fixed `formatMoney` in `src/money.js` so negative amounts print with the minus sign first. `formatMoney(-500)` now returns `-$5.00` and `formatMoney(-5)` returns `-$0.05`. `npm test` passes, all 10 "
+    },
+    {
+      "attempt": "att_e54cad5a33acdd20_1",
+      "instance": "runner-A",
+      "seq": 7,
+      "kind": "test",
+      "text": "cat test/basic.test.js | head -30; grep -n formatMoney test/basic.test.js"
+    },
+    {
+      "attempt": "att_e54cad5a33acdd20_1",
+      "instance": "runner-A",
+      "seq": 8,
+      "kind": "test",
+      "text": "python3 - <<'E'\np='test/basic.test.js'\ns=open(p).read()\ns=s.replace('''test(\"parseMoney parses common''','''test(\"formatMoney formats negative amounts\", () => {\n  assert.equal(L.formatMoney(-500), \"-$"
+    },
+    {
+      "attempt": "att_e54cad5a33acdd20_1",
+      "instance": "runner-A",
+      "seq": 9,
+      "kind": "message",
+      "text": "I added a test, \"formatMoney formats negative amounts\", to `test/basic.test.js`. It checks `formatMoney(-5) === \"-$0.05\"` and also `formatMoney(-500) === \"-$5.00\"`. `npm test` now passes with 11 tests"
+    },
+    {
+      "attempt": "att_e54cad5a33acdd20_1",
+      "instance": "runner-A",
+      "seq": 10,
+      "kind": "progress",
+      "text": "branch handoff/d1-g1 at 88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29"
+    },
+    {
+      "attempt": "att_e54cad5a33acdd20_3",
+      "instance": "runner-B",
+      "seq": 1,
+      "kind": "progress",
+      "text": "recovery: previous attempts [{\"attempt\":\"att_e54cad5a33acdd20_1\",\"outcome\":\"awaiting_approval\"},{\"attempt\":\"att_e54cad5a33acdd20_2\",\"outcome\":\"unknown\"}]; remote branch 88da52d35cffdf5cb753bec1edbdfe5"
+    },
+    {
+      "attempt": "att_e54cad5a33acdd20_3",
+      "instance": "runner-B",
+      "seq": 2,
+      "kind": "progress",
+      "text": "branch handoff/d1-g1 at 88da52d35cffdf5cb753bec1edbdfe5a9ea7dc29"
+    }
+  ],
+  "invocation": {
+    "attempts": [
+      {
+        "id": "att_e54cad5a33acdd20_1",
+        "outcome": "awaiting_approval",
+        "worker": {
+          "id": "runner-A",
+          "via": "mcp",
+          "run": "req_01M84EEQSPQB5R1ETJXCMKP7PA"
+        }
+      },
+      {
+        "id": "att_e54cad5a33acdd20_2",
+        "outcome": "unknown",
+        "worker": {
+          "id": "runner-A",
+          "via": "mcp",
+          "run": "req_01M84EFERBZEV8FG1TD9MR849E"
+        }
+      },
+      {
+        "id": "att_e54cad5a33acdd20_3",
+        "outcome": "succeeded",
+        "worker": {
+          "id": "runner-B",
+          "via": "mcp",
+          "run": "req_01M84EG4GB3JSQGSJRV36AJ1QV"
+        }
+      }
+    ],
+    "approval": {
+      "action": "github.pr.open",
+      "decision": {
+        "approvedBy": "ada",
+        "approvedAt": 1795445733175,
+        "digest": "sha256:a038ace5f1f33f5b23c74466ddcaa16aa5216b2745473d34f47fb9f20e5d20c7",
+        "note": "Open the PR"
+      }
+    }
+  },
+  "branchDiff": "diff --git a/src/money.js b/src/money.js\nindex ed96ecb..6b90c75 100644\n--- a/src/money.js\n+++ b/src/money.js\n@@ -3,10 +3,12 @@ const SYMBOLS = { USD: \"$\", EUR: \"€\", GBP: \"£\" };\n /** Format integer cents as a currency string, e.g. 123456 → \"$1,234.56\". */\n export function formatMoney(cents, currency = \"USD\") {\n   const symbol = SYMBOLS[currency] ?? `${currency} `;\n-  const whole = Math.trunc(cents / 100);\n-  const frac = String(Math.abs(cents % 100)).padStart(2, \"0\");\n+  const abs = Math.abs(cents);\n+  const sign = cents < 0 ? \"-\" : \"\";\n+  const whole = Math.trunc(abs / 100);\n+  const frac = String(abs % 100).padStart(2, \"0\");\n   const grouped = String(whole).replace(/\\B(?=(\\d{3})+(?!\\d))/g, \",\");\n-  return `${symbol}${grouped}.${frac}`;\n+  return `${sign}${symbol}${grouped}.${frac}`;\n }\n \n /** Parse \"$1,234.50\", \"1234.5\" or \"-$5\" into integer cents. */\ndiff --git a/test/basic.test.js b/test/basic.test.js\nindex 35c17fc..28cdee0 100644\n--- a/test/basic.test.js\n+++ b/test/basic.test.js\n@@ -6,6 +6,10 @@ test(\"formatMoney formats positive amounts\", () => {\n   assert.equal(L.formatMoney(123456), \"$1,234.56\");\n   assert.equal(L.formatMoney(5, \"EUR\"), \"€0.05\");\n });\n+test(\"formatMoney formats negative amounts\", () => {\n+  assert.equal(L.formatMoney(-500), \"-$5.00\");\n+  assert.equal(L.formatMoney(-5), \"-$0.05\");\n+});\n test(\"parseMoney parses common forms\", () => {\n   assert.equal(L.parseMoney(\"$1,234.50\"), 123450);\n   assert.equal(L.parseMoney(\"-$5\"), -500);\n"
+}

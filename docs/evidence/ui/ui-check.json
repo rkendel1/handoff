@@ -1,0 +1,51 @@
+{
+  "ranAt": "2026-11-23T14:54:53.099Z",
+  "feltkit": "0.3.37",
+  "results": [
+    {
+      "name": "running: Update coming, Pause, Interrupt, Stop enabled",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "typing signals an update (FeltKit instruction state: signaled)",
+      "ok": true,
+      "detail": "The agent knows an update is coming and keeps working. It takes your update at its next checkpoint."
+    },
+    {
+      "name": "agent keeps working while an update is only signaled",
+      "ok": true,
+      "detail": "{\"proceed\":true,\"signaled\":1}"
+    },
+    {
+      "name": "the update is delivered at the next checkpoint",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the agent's acknowledgement appears (incorporated, with its note)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "paused: Resume shown, agent held",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "interrupted: Interrupt disabled, Resume shown, agent held",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "stopped: controls disabled; delegation and invocation cancelled",
+      "ok": true,
+      "detail": "{\"state\":\"cancelled\",\"invocationState\":\"cancelled\"}"
+    },
+    {
+      "name": "the runner's next report is refused after Stop",
+      "ok": true,
+      "detail": "CLAIM_LOST"
+    }
+  ]
+}

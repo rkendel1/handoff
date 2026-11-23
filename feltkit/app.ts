@@ -21,10 +21,10 @@ export const app = feltkit({
     // People who delegate, steer and review. feltkit.agent.* lets them steer a runner's agent task.
     member: ["work.*", "agents.read", "repos.read", "github.read", "notifications.*", "feltkit.agent.*", "handoff.placed"],
     // Workspace administration: agents, repositories, GitHub polling, platform services.
-    admin: ["agents.manage", "repos.manage", "github.sync", "jobs.*", "credential.*", "feltkit.operations.*"],
+    admin: ["agents.manage", "repos.manage", "github.read", "github.sync", "jobs.*", "credential.*", "feltkit.operations.*"],
     // The trusted runner pool (one shared service principal). Also the bridge role of the
     // `delegation` surface. It never holds work.review or any approval permission.
-    runner: ["runner.*", "github.read", "github.write", "github.sync", "feltkit.agent.*", "handoff.placed", "agents.read", "repos.read"],
+    runner: ["runner.*", "github.read", "github.write", "github.sync", "jobs.create", "jobs.execute", "feltkit.agent.*", "handoff.placed", "agents.read", "repos.read"],
   },
   auth: { accounts: { roles: ["member"], signUp: false } },
   dev: {
