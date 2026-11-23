@@ -38,6 +38,57 @@ async function observe(ctx: MutationCtx, delegationId: string) {
   return { d, pr, factId, count: pulls.filter((p) => p.head.ref === d.branch).length };
 }
 
+type Compare = { status?: unknown; ahead_by?: unknown; total_commits?: unknown; commits: Array<{ sha: string; commit: { message: string } }>; files?: unknown };
+const PATCH_LIMIT = 4_000; const PATCH_TOTAL = 60_000;
+
+/**
+ * Source-control evidence for the delegation's branch, read from GitHub: commits and changed files
+ * (base...head by commit SHA), reviews and check runs on the PR head. Recorded only when it changed.
+ * GitHub stays authoritative; these are dated observations of it.
+ */
+async function observeSourceControl(ctx: MutationCtx, delegationId: string, pr: Pull | null) {
+  const d = await load(ctx, delegationId);
+  const repo = await repoOf(ctx, d.repositoryId);
+  const base = (await ctx.integrations.invoke("github.branchget", { owner: repo.owner, repo: repo.name, branch: d.baseBranch })) as { commit: { sha: string } };
+  const head = pr?.head.sha ?? ((await ctx.integrations.invoke("github.branchget", { owner: repo.owner, repo: repo.name, branch: d.branch }).catch(() => null)) as { commit: { sha: string } } | null)?.commit.sha;
+  if (!head) return;
+  const cmp = (await ctx.integrations.invoke("github.compare", { owner: repo.owner, repo: repo.name, basehead: `${base.commit.sha}...${head}` })) as Compare;
+  let budget = PATCH_TOTAL;
+  const files = (Array.isArray(cmp.files) ? cmp.files : []).map((f: { filename: string; status: string; additions: number; deletions: number; patch?: string }) => {
+    const patch = typeof f.patch === "string" ? f.patch.slice(0, Math.max(0, Math.min(PATCH_LIMIT, budget))) : undefined;
+    budget -= patch?.length ?? 0;
+    return { filename: f.filename, status: f.status, additions: f.additions, deletions: f.deletions, patch, truncated: typeof f.patch === "string" && (patch?.length ?? 0) < f.patch.length };
+  });
+  const latest = async (kind: string) => (await ctx.db.find(facts, { delegationId, kind: kind as never })).sort((a, b) => b.observedAt - a.observedAt)[0];
+  const record = async (kind: "diff" | "commits" | "reviews" | "checks", detail: Record<string, unknown>, extra: Record<string, unknown> = {}) => {
+    const prior = await latest(kind);
+    if (prior && JSON.stringify(prior.detail) === JSON.stringify(detail) && prior.headSha === head) return;
+    await ctx.db.insert(facts, { delegationId, kind, via: "read", headSha: head, ...extra, detail, observedAt: now() });
+    await note(ctx, delegationId, "github", `github.${kind}.observed`, { headSha: head, ...extra });
+  };
+  await record("diff", { base: base.commit.sha, head, files });
+  await record("commits", { commits: cmp.commits.map((c) => ({ sha: c.sha, message: c.commit.message.split("\n")[0]!.slice(0, 200) })) });
+  const checks = (await ctx.integrations.invoke("github.checkruns", { owner: repo.owner, repo: repo.name, ref: head })) as { total_count: number; check_runs: Array<{ name: string; status: string; conclusion: unknown }> };
+  const runs = checks.check_runs.map((c) => ({ name: c.name, status: c.status, conclusion: c.conclusion ?? null }));
+  const state = runs.length === 0 ? "none" : runs.some((c) => c.status !== "completed") ? "pending" : runs.every((c) => c.conclusion === "success" || c.conclusion === "skipped" || c.conclusion === "neutral") ? "passing" : "failing";
+  await record("checks", { runs }, { state });
+  if (pr) {
+    const reviews = (await ctx.integrations.invoke("github.pullreviews", { owner: repo.owner, repo: repo.name, number: pr.number })) as Array<{ state: string; user: unknown; submitted_at: unknown }>;
+    const list = reviews.map((r) => ({ state: r.state, by: (r.user as { login?: string } | null)?.login ?? null, at: r.submitted_at ?? null }));
+    const reviewState = list.some((r) => r.state === "CHANGES_REQUESTED") ? "changes_requested" : list.some((r) => r.state === "APPROVED") ? "approved" : list.length ? "commented" : "none";
+    await record("reviews", { reviews: list }, { prNumber: pr.number, state: reviewState });
+  }
+}
+
+/** Read the branch's source-control evidence from GitHub now (diff, commits, checks, reviews). */
+export const observeSourceControlNow = app.mutation({
+  access: "github.read",
+  args: { delegationId: s.string() },
+  returns: s.boolean(),
+  capability: { name: "github.sourcecontrol", description: "Read the delegation branch's diff, commits, checks and reviews from GitHub." },
+  handler: async (ctx, { delegationId }) => { const { pr } = await observe(ctx, delegationId); await observeSourceControl(ctx, delegationId, pr); return true; },
+});
+
 /** Anyone allowed to read GitHub may ask Handoff to look; what is recorded is what GitHub says. */
 export const observePulls = app.mutation({
   access: "github.read",
@@ -129,6 +180,7 @@ export const verify = app.mutation({
 
 async function verifyOne(ctx: MutationCtx, delegationId: string) {
   const { d, pr, factId } = await observe(ctx, delegationId);
+  await observeSourceControl(ctx, delegationId, pr);
   if (!["reported", "verified"].includes(d.state) || !d.report) return { verified: false, reason: `delegation is ${d.state}` };
   if (!pr || !factId) return { verified: false, reason: "no pull request on GitHub for the branch" };
   if (pr.head.sha !== d.report.headSha) {

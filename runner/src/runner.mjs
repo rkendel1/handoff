@@ -36,13 +36,26 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 const remoteFor = (repo) => REMOTE.replace("{owner}", repo.owner).replace("{name}", repo.name);
 
-/** One attempt's reporting: sequenced events, heartbeat (lease renewal), stop on refusal. */
+/**
+ * What this runtime can actually do, declared to Handoff (shown to people; never used for authorization).
+ * EVE takes updates at its next step, cannot pause mid-step, interrupts by cancelling the model generation,
+ * stops cooperatively, and cannot reattach a session after this process dies (recovery is a new attempt).
+ */
+const CAPABILITIES = { steer: "next-step", pause: "between-steps", interrupt: "cancel-generation", resume: "continue", stop: "cooperative", reconnect: "none" };
+const RUNTIME = { name: "eve", version: "@appport/eve 1.0.2", node: process.version, model: process.env.HANDOFF_MODEL ?? "claude-sonnet-5-5" };
+const current = { delegationId: undefined, attempt: undefined, session: undefined, state: "idle", lastError: undefined };
+async function heartbeat() {
+  try { await h.call("runner.heartbeat", { instance: INSTANCE, state: current.state, runtime: RUNTIME, capabilities: CAPABILITIES, ...(current.delegationId ? { delegationId: current.delegationId } : {}), ...(current.attempt ? { attempt: current.attempt } : {}), ...(current.session ? { session: current.session } : {}), ...(current.lastError ? { lastError: current.lastError.slice(0, 500) } : {}) }); }
+  catch (e) { log(`heartbeat refused: ${e.code} ${e.message}`); }
+}
+
+/** One attempt's reporting: sequenced events with their session and turn, heartbeat (lease renewal), stop on refusal. */
 class Attempt {
-  constructor(delegationId, claim) { this.delegationId = delegationId; this.claim = claim; this.seq = 0; this.buffer = []; this.stopped = null; }
-  add(kind, text) { this.buffer.push({ seq: ++this.seq, kind, text: String(text).slice(0, 4000), at: Date.now() }); }
+  constructor(delegationId, claim) { this.delegationId = delegationId; this.claim = claim; this.seq = 0; this.buffer = []; this.stopped = null; this.session = undefined; this.turn = undefined; this.mode = "running"; }
+  add(kind, text, extra = {}) { this.buffer.push({ seq: ++this.seq, kind, text: String(text).slice(0, 4000), at: Date.now(), ...(this.session ? { session: this.session } : {}), ...(this.turn ? { turn: this.turn } : {}), ...extra }); }
   async beat() {
     const events = this.buffer.splice(0, 50);
-    try { await h.call("runner.report", { delegationId: this.delegationId, claim: this.claim, instance: INSTANCE, events }); }
+    try { await h.call("runner.report", { delegationId: this.delegationId, claim: this.claim, instance: INSTANCE, events, runtime: { ...(this.session ? { session: this.session } : {}), ...(this.turn ? { turn: this.turn } : {}), mode: this.mode, capabilities: CAPABILITIES } }); }
     catch (e) { this.buffer.unshift(...events); this.stopped = `${e.code}: ${e.message}`; }
     return !this.stopped;
   }
@@ -51,6 +64,8 @@ class Attempt {
 async function main() {
   mkdirSync(WORK, { recursive: true });
   log(`pool session at ${URL_}; lease ${LEASE_MS} ms; instance ids are asserted, not authenticated`);
+  await heartbeat();
+  setInterval(() => void heartbeat(), 10_000).unref();
   for (;;) {
     const next = await h.call("runner.next", {});
     for (const item of next) {
@@ -76,6 +91,8 @@ async function work(item) {
   }
   const snap = c.snapshot;
   const a = new Attempt(id, c.claim);
+  Object.assign(current, { delegationId: id, attempt: c.attemptId ?? String(c.attemptNumber), session: undefined, state: "working" });
+  void heartbeat();
   log(`#${snap.delegation.number} claimed: attempt ${c.attemptNumber}; previous ${JSON.stringify(c.previous)}`);
   const beat = setInterval(() => void a.beat(), HEARTBEAT_MS);
   try {
@@ -132,7 +149,8 @@ async function work(item) {
     if (opened.created === null) { await h.call("runner.fail", { delegationId: id, claim, code: "PR_OUTCOME_UNKNOWN", message: opened.message, effect: "possible" }); return; }
     await h.call("runner.submit", { delegationId: id, claim, instance: INSTANCE, summary: a.summary ?? `Branch ${branch} at ${head}; PR #${opened.prNumber}.`, headSha: head });
     log(`#${snap.delegation.number} reported (verification by Handoff follows)`);
-  } finally { clearInterval(beat); }
+  } catch (e) { current.lastError = `${e.code ?? ""} ${e.message}`.trim(); throw e; }
+  finally { clearInterval(beat); Object.assign(current, { delegationId: undefined, attempt: undefined, session: undefined, state: "idle" }); void heartbeat(); }
 }
 
 /** Wait for the person's decision; FeltKit refuses resume (NOT_APPROVED) until then. Returns the new claim. */
@@ -175,8 +193,10 @@ async function execute({ snap, a, taskId, clone, branch, dir }) {
     const d = snap.delegation;
     const prompt = `${d.objective}\n\nAcceptance criteria:\n${(d.criteria.length ? d.criteria : ["Existing tests pass"]).map((c) => `- ${c}`).join("\n")}\n\nThe repository is in /workspace. Run \`npm test\`. Finish without asking questions, then summarize.`;
     const session = await (await fetch(`${base}/session`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: prompt }) })).json();
+    a.session = session.sessionId; current.session = session.sessionId; void heartbeat();
     a.add("progress", `EVE session ${session.sessionId} started`);
     let next = 0; let started = 0; let settled = 0; let lastOutcome = null; let quietSince = 0; let lastText = ""; let interrupted = false; let held = false;
+    const calls = new Map();
     for (;;) {
       if (a.stopped) { a.add("warning", `stopping: ${a.stopped}`); await fetch(`${base}/session/${session.sessionId}/cancel`, { method: "POST" }).catch(() => {}); return null; }
       // New EVE events → Handoff observations (a bounded catch-up read; no live stream to hold).
@@ -184,10 +204,16 @@ async function execute({ snap, a, taskId, clone, branch, dir }) {
       for (const line of (await res.text()).split("\n")) {
         if (!line.trim()) continue; const ev = JSON.parse(line); if (ev.$eve) continue; next++;
         for (const f of ev.facts ?? []) {
-          if (f.type === "turn.started") started++;
-          if (f.type === "turn.settled") { settled++; lastOutcome = f.data?.outcome; }
-          if (f.type === "call.requested") a.add(/test/.test(String(f.data?.input?.command ?? "")) ? "test" : f.data?.input?.command ? "command" : "tool", f.data?.input?.command ?? `${f.data?.capability?.name ?? "tool"} ${JSON.stringify(f.data?.input ?? {}).slice(0, 300)}`);
-          if (f.type === "call.settled" && typeof f.data?.output?.exitCode === "number" && f.data.output.exitCode !== 0) a.add("warning", `exit ${f.data.output.exitCode}: ${String(f.data.output.stderr ?? "").slice(0, 300)}`);
+          if (f.scope?.turnId) a.turn = f.scope.turnId;
+          if (f.type === "turn.started") { started++; a.turn = f.data?.turnId ?? f.scope?.turnId ?? a.turn; a.add("progress", `turn ${a.turn} started`, { status: "running" }); }
+          if (f.type === "turn.settled") { settled++; lastOutcome = f.data?.outcome; a.add("progress", `turn ${a.turn} ${lastOutcome}`, { status: lastOutcome === "completed" ? "completed" : "failed" }); }
+          if (f.type === "call.requested") { const cmd = f.data?.input?.command; calls.set(f.data?.callId, { kind: /test/.test(String(cmd ?? "")) ? "test" : cmd ? "command" : "tool", text: cmd ?? `${f.data?.capability?.name ?? "tool"} ${JSON.stringify(f.data?.input ?? {}).slice(0, 300)}` }); }
+          if (f.type === "call.settled") {
+            const c = calls.get(f.data?.callId) ?? { kind: "tool", text: "tool call" };
+            const exit = f.data?.output?.exitCode;
+            const failed = f.data?.outcome !== "completed" || (typeof exit === "number" && exit !== 0);
+            a.add(c.kind, `${c.text}${typeof exit === "number" ? ` → exit ${exit}` : ""}${failed && f.data?.output?.stderr ? `: ${String(f.data.output.stderr).slice(0, 300)}` : ""}`, { status: failed ? "failed" : "completed" });
+          }
           if (f.type === "content.completed" && f.data?.kind !== "reasoning" && f.data?.value) { lastText = String(f.data.value); a.add("message", lastText); }
         }
       }
@@ -210,6 +236,7 @@ async function execute({ snap, a, taskId, clone, branch, dir }) {
         if (interrupted && settled >= started) await fetch(`${base}/session/${session.sessionId}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: "A person resumed you after an interruption. Continue the task from where you stopped." }) });
         interrupted = false; held = false;
       }
+      a.mode = cp.mode ?? (cp.proceed ? "running" : "paused");
       const st = await h.call("runner.status", { delegationId: d.id });
       if (st.state === "cancelled" || st.invocationState === "cancelled") a.stopped = "cancelled by the delegator";
       const idle = started > 0 && settled >= started && !(cp.instructions ?? []).length && !interrupted;

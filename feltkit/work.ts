@@ -146,25 +146,84 @@ export const detail = app.query({
   },
 });
 
-/** The Desk: what needs the signed-in person, and what is moving. Derived, never stored. */
+/**
+ * The timeline of one delegation, keeping its layers distinct:
+ *   generation (one FeltKit invocation) → attempt (one claim) → session (EVE runtime) → turn → activity,
+ * beside decisions (people), evidence (runner claims) and external facts (GitHub reads).
+ * Every entry says where it came from and how much it can be trusted:
+ *   reported (a runner said so) · observed (Handoff read it from GitHub) · verified (a GitHub fact matched a claim) · decided (a person).
+ */
+export const timeline = app.query({
+  access: "work.read",
+  args: { id: s.string() },
+  handler: async (ctx, { id }) => {
+    const d = await load(ctx, id);
+    const [events, observed, trail] = await Promise.all([ctx.db.find(runEvents, { delegationId: id }), ctx.db.find(facts, { delegationId: id }), history.history(ctx, "delegation", id)]);
+    type Entry = { at: number; layer: string; source: string; trust: "reported" | "observed" | "verified" | "decided" | "system"; title: string; detail?: unknown; generation?: number; attempt?: string; session?: string; turn?: string; ref?: string };
+    const entries: Entry[] = [];
+    const LAYER: Record<string, string> = {
+      "delegation.created": "delegation", "delegation.assigned": "delegation", "delegation.dispatched": "generation", "review.returned": "decision", "review.accepted": "decision", "review.rejected": "decision", "delegation.cancelled": "decision",
+      "attempt.started": "attempt", "attempt.takeover": "attempt", "attempt.failed": "attempt", "attempts.exhausted": "attempt", "approval.resumed": "decision", "approval.requested": "approval",
+      "session.started": "session", "steering.task-bound": "control", "result.reported": "evidence", "result.verified": "fact", "verification.mismatch": "fact",
+      "github.write.unknown": "fact", "github.pr.created": "fact", "github.pr.reconciled": "fact",
+    };
+    let generation = 1;
+    for (const h of trail) {
+      const data = (h.data ?? {}) as Record<string, unknown>;
+      if (h.type === "delegation.dispatched" && typeof data.generation === "number") generation = data.generation;
+      if (h.type === "review.returned" && typeof data.generation === "number") generation = data.generation;
+      const source = String(data.source ?? "system");
+      const layer = LAYER[h.type] ?? (h.type.startsWith("github.") ? "fact" : "delegation");
+      const trust = source === "person" ? "decided" : source === "github" ? (h.type === "result.verified" ? "verified" : "observed") : source === "runner" ? "reported" : "system";
+      entries.push({ at: h.at, layer, source, trust, title: h.type, detail: data, generation, ...(typeof data.attempt === "string" ? { attempt: data.attempt } : {}), ...(typeof data.session === "string" ? { session: data.session } : {}), ref: `history:${h.seq}` });
+    }
+    for (const e of events) entries.push({ at: e.at, layer: "activity", source: "runner", trust: "reported", title: e.kind, detail: { text: e.text, status: e.status ?? null, instance: e.instance, seq: e.seq }, attempt: e.attempt, ...(e.session ? { session: e.session } : {}), ...(e.turn ? { turn: e.turn } : {}), ref: `event:${e.attempt}:${e.seq}` });
+    for (const f of observed) if (!["unknown_write"].includes(f.kind)) entries.push({ at: f.observedAt, layer: "fact", source: "github", trust: "observed", title: `github.${f.kind}`, detail: { prNumber: f.prNumber ?? null, headSha: f.headSha ?? null, state: f.state ?? null, url: f.url ?? null, via: f.via }, ref: `fact:${f.id}` });
+    entries.sort((a, b) => a.at - b.at);
+    // The hierarchy: attempts in order, each with its sessions and turns (from the runner's reports).
+    const attempts = trail.filter((h) => h.type === "attempt.started" || h.type === "attempt.takeover" || h.type === "approval.resumed").map((h) => {
+      const data = h.data as Record<string, unknown>;
+      const attempt = String(data.attempt);
+      const mine = events.filter((e) => e.attempt === attempt);
+      const sessions = [...new Set(mine.map((e) => e.session ?? "(no session reported)"))].map((session) => {
+        const inSession = mine.filter((e) => (e.session ?? "(no session reported)") === session);
+        const turns = [...new Set(inSession.map((e) => e.turn ?? "(no turn reported)"))].map((turn) => ({ turn, events: inSession.filter((e) => (e.turn ?? "(no turn reported)") === turn).length }));
+        return { session, turns, events: inSession.length };
+      });
+      return { attempt, how: h.type, instance: String(data.instance ?? ""), instanceAuthenticated: false, at: h.at, previous: data.previous ?? [], sessions, events: mine.length };
+    });
+    return { delegation: { id: d.id, number: d.number, state: d.state, generation: d.generation, branch: d.branch }, attempts, entries };
+  },
+});
+
+/** The Desk: what needs the signed-in person's attention, and why. Derived from durable records, never stored. */
 export const desk = app.query({
   access: "work.read",
   handler: async (ctx) => {
     const me = ctx.auth.requirePrincipal().id;
+    const at = now();
     const all = await ctx.db.find(delegations, {});
-    const mine = all.filter((d) => d.requestedBy === me);
-    const needs = mine.flatMap((d) => {
-      if (d.state === "awaiting_approval") return [{ id: d.id, number: d.number, title: d.title, reason: "Approve opening a pull request" }];
-      if (d.state === "verified") return [{ id: d.id, number: d.number, title: d.title, reason: "Review verified work" }];
-      if (d.state === "reported") return [{ id: d.id, number: d.number, title: d.title, reason: "Reported done: waiting for GitHub verification" }];
-      if (d.state === "failed") return [{ id: d.id, number: d.number, title: d.title, reason: `Failed: ${d.failure?.message ?? "see history"}` }];
-      if (d.state === "draft") return [{ id: d.id, number: d.number, title: d.title, reason: "Assign an agent" }];
-      return [];
-    });
-    const moving = all.filter((d) => ["queued", "dispatched", "running"].includes(d.state)).map((d) => ({ id: d.id, number: d.number, title: d.title, state: d.state, agentKey: d.agentKey ?? null, updatedAt: d.updatedAt }));
-    const done = all.filter((d) => ["accepted", "rejected", "cancelled"].includes(d.state)).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 10);
+    const allFacts = await ctx.db.find(facts, {});
+    const row = (d: (typeof all)[number], reason: string) => ({ id: d.id, number: d.number, title: d.title, state: d.state, agentKey: d.agentKey ?? null, requestedBy: d.requestedBy, mine: d.requestedBy === me, updatedAt: d.updatedAt, reason });
+    const unresolvedUnknown = (id: string) => {
+      const f = allFacts.filter((x) => x.delegationId === id).sort((a, b) => b.observedAt - a.observedAt);
+      const lastUnknown = f.find((x) => x.kind === "unknown_write");
+      const lastPr = f.find((x) => x.kind === "pull_request");
+      return lastUnknown && (!lastPr || lastPr.observedAt < lastUnknown.observedAt);
+    };
+    const STALE_MS = 2 * 60_000;
+    const groups = {
+      awaitingAssignment: all.filter((d) => d.state === "draft").map((d) => row(d, "Assign an agent to start")),
+      awaitingApproval: all.filter((d) => d.state === "awaiting_approval").map((d) => row(d, d.requestedBy === me ? "The runner asks you to approve opening a pull request" : `Waiting for ${d.requestedBy} to approve a pull request`)),
+      waitingForInput: all.filter((d) => ["running", "dispatched"].includes(d.state) && ["paused", "interrupted"].includes(d.runtime?.mode ?? "")).map((d) => row(d, `The agent is ${d.runtime!.mode}: resume or send an update`)),
+      failedOrUncertain: all.filter((d) => d.state === "failed" || (d.state === "running" && (unresolvedUnknown(d.id) || (d.runtime && at - d.runtime.at > STALE_MS)))).map((d) =>
+        row(d, d.state === "failed" ? `Failed: ${d.failure?.message ?? "see history"}` : unresolvedUnknown(d.id) ? "An external write's outcome is unknown: GitHub does not show it yet" : `No runner report for ${Math.round((at - d.runtime!.at) / 60000)} min: the lease may expire and another runner take over`)),
+      needsReview: all.filter((d) => d.state === "verified" || d.state === "reported").map((d) => row(d, d.state === "verified" ? "Verified on GitHub: review and accept" : "Reported done: waiting for GitHub to confirm")),
+      active: all.filter((d) => ["queued", "dispatched", "running"].includes(d.state)).map((d) => row(d, d.state === "queued" ? "Waiting for a runner" : d.runtime ? `Runner ${d.runtime.instance} (asserted) · reported ${Math.round((at - d.runtime.at) / 1000)} s ago` : "Running")),
+      recentlyAccepted: all.filter((d) => d.state === "accepted").sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 10).map((d) => row(d, `Accepted by ${d.review?.by ?? "?"}`)),
+    };
     const [githubSync] = await ctx.db.find(sync, { key: "github" });
-    return { needs, moving, done, githubSync: githubSync ?? null };
+    return { ...groups, githubSync: githubSync ?? null };
   },
 });
 

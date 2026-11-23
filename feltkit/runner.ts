@@ -11,11 +11,11 @@
  */
 import { fail, s } from "@feltdb/feltkit";
 import type { MutationCtx, QueryCtx } from "@feltdb/feltkit";
-import { agents, app, delegations, facts, runEvents } from "./app.js";
-import { invocationKey, load, note, now, repoOf, transition } from "./_lib.js";
+import { agents, app, delegations, facts, runEvents, workers } from "./app.js";
+import { RUNTIME_CAPABILITIES, invocationKey, load, note, now, policyOf, repoOf, transition } from "./_lib.js";
 
-const LEASE_MS = { min: 2_000, max: 600_000 };
-const leaseOf = (ms: number) => Math.min(LEASE_MS.max, Math.max(LEASE_MS.min, Math.round(ms)));
+const leaseWithin = (ms: number, p: { leaseMinMs: number; leaseMaxMs: number }) => Math.min(p.leaseMaxMs, Math.max(p.leaseMinMs, Math.round(ms)));
+const capabilitiesOf = (declared: Record<string, string>) => Object.fromEntries(Object.entries(declared).filter(([k, v]) => k in RUNTIME_CAPABILITIES && (RUNTIME_CAPABILITIES as Record<string, readonly string[]>)[k]!.includes(v)));
 
 function requireRunner(ctx: QueryCtx | MutationCtx) {
   const p = ctx.auth.requirePrincipal();
@@ -78,8 +78,15 @@ export const claim = app.mutation({
     const d = await load(ctx, delegationId);
     if (!d.invocationId) fail("FAILED_PRECONDITION", "Deliver the delegation first.");
     if (!["dispatched", "running"].includes(d.state)) fail("FAILED_PRECONDITION", `Delegation is ${d.state}.`);
-    const started = await ctx.invocations.start(d.invocationId, { worker: instance, leaseMs: leaseOf(leaseMs) });
+    const pol = await policyOf(ctx);
+    const started = await ctx.invocations.start(d.invocationId, { worker: instance, leaseMs: leaseWithin(leaseMs, pol) });
     if (!started.proceed) return { proceed: false, reason: started.reason ?? started.state };
+    if ((started.attempt ?? 1) > pol.maxAttempts) {
+      // Policy, enforced at the claim boundary: this generation has used its attempts.
+      await ctx.invocations.transition(d.invocationId, "failed", { claim: started.claim!, error: { code: "ATTEMPTS_EXHAUSTED", message: `Attempt ${started.attempt} exceeds the policy's ${pol.maxAttempts}.` } });
+      await transition(ctx, d, "failed", "system", "attempts.exhausted", { attempt: started.attemptId, attemptNumber: started.attempt, maxAttempts: pol.maxAttempts, previous: started.previous ?? [] }, { failure: { code: "ATTEMPTS_EXHAUSTED", message: `Stopped after ${pol.maxAttempts} attempts.`, at: now() } });
+      return { proceed: false, reason: "ATTEMPTS_EXHAUSTED" };
+    }
     const uncertain = started.previous?.some((p) => p.outcome === "unknown") ?? false;
     await transition(ctx, d, "running", "runner", uncertain ? "attempt.takeover" : "attempt.started", {
       attempt: started.attemptId, attemptNumber: started.attempt, instance, instanceAuthenticated: false, previous: started.previous ?? [],
@@ -116,11 +123,12 @@ export const report = app.mutation({
   access: "runner.work",
   args: {
     delegationId: s.string(), claim: s.string(), instance: s.string(),
-    events: s.array(s.object({ seq: s.number(), kind: s.enum(["progress", "tool", "command", "test", "message", "warning", "error"]), text: s.string(), at: s.number() })),
+    events: s.array(s.object({ seq: s.number(), kind: s.enum(["progress", "tool", "command", "test", "message", "warning", "error"]), text: s.string(), at: s.number(), session: s.optional(s.string()), turn: s.optional(s.string()), status: s.optional(s.string()) })),
+    runtime: s.optional(s.object({ session: s.optional(s.string()), turn: s.optional(s.string()), mode: s.optional(s.string()), capabilities: s.record(s.string()) })),
   },
   returns: s.object({ leaseUntil: s.number(), accepted: s.number(), duplicates: s.number() }),
   capability: { name: "runner.report", description: "Report progress and observations; renews the lease." },
-  handler: async (ctx, { delegationId, claim, instance, events }) => {
+  handler: async (ctx, { delegationId, claim, instance, events, runtime }) => {
     requireRunner(ctx);
     const d = await load(ctx, delegationId);
     if (!d.invocationId) fail("FAILED_PRECONDITION", "Not delivered.");
@@ -131,8 +139,13 @@ export const report = app.mutation({
     for (const e of events) {
       const [seen] = await ctx.db.find(runEvents, { attempt, seq: e.seq });
       if (seen) { duplicates++; continue; }
-      await ctx.db.insert(runEvents, { delegationId, attempt, instance, seq: e.seq, kind: e.kind, text: e.text.slice(0, 4000), at: e.at, receivedAt: now() });
+      await ctx.db.insert(runEvents, { delegationId, attempt, instance, seq: e.seq, kind: e.kind, text: e.text.slice(0, 4000), at: e.at, receivedAt: now(), ...(e.session ? { session: e.session } : {}), ...(e.turn ? { turn: e.turn } : {}), ...(e.status ? { status: e.status } : {}) });
       accepted++;
+    }
+    if (runtime) {
+      const prev = d.runtime;
+      await ctx.db.patch(delegations, d.id, { runtime: { instance, attempt, ...(runtime.session ? { session: runtime.session } : {}), ...(runtime.turn ? { turn: runtime.turn } : {}), ...(runtime.mode ? { mode: runtime.mode } : {}), capabilities: capabilitiesOf(runtime.capabilities), at: now() } });
+      if (runtime.session && prev?.session !== runtime.session) await note(ctx, d.id, "runner", "session.started", { session: runtime.session, attempt, instance, instanceAuthenticated: false, capabilities: capabilitiesOf(runtime.capabilities) });
     }
     return { leaseUntil, accepted, duplicates };
   },
@@ -181,7 +194,7 @@ export const resume = app.mutation({
   handler: async (ctx, { delegationId, instance, leaseMs }) => {
     requireRunner(ctx);
     const d = await load(ctx, delegationId);
-    const r = await ctx.invocations.resume(d.invocationId!, { worker: instance, leaseMs: leaseOf(leaseMs) });
+    const r = await ctx.invocations.resume(d.invocationId!, { worker: instance, leaseMs: leaseWithin(leaseMs, await policyOf(ctx)) });
     if (!r.proceed) return { proceed: false, reason: r.reason ?? r.state };
     const inv = await ctx.invocations.get(d.invocationId!);
     await transition(ctx, d, "running", "runner", "approval.resumed", { attempt: r.attemptId, instance, instanceAuthenticated: false, approvedBy: inv.approval?.decision?.approvedBy ?? null });
@@ -234,3 +247,25 @@ export const status = app.query({
   },
 });
 
+
+/** A runner process's heartbeat: what it says it is and is doing. Self-reported; never authority. */
+export const heartbeat = app.mutation({
+  access: "runner.work",
+  args: {
+    instance: s.string({ minLength: 1, maxLength: 80 }), state: s.enum(["idle", "working", "stopping"]),
+    runtime: s.object({ name: s.string(), version: s.string(), node: s.string(), model: s.optional(s.string()) }),
+    capabilities: s.record(s.string()),
+    delegationId: s.optional(s.string()), attempt: s.optional(s.string()), session: s.optional(s.string()), lastError: s.optional(s.string({ maxLength: 500 })),
+  },
+  returns: s.boolean(),
+  capability: { name: "runner.heartbeat", description: "Report this runner process's state (self-reported, not identity)." },
+  handler: async (ctx, a) => {
+    requireRunner(ctx);
+    const at = now();
+    const [w] = await ctx.db.find(workers, { instance: a.instance });
+    const record = { ...a, capabilities: capabilitiesOf(a.capabilities), lastSeenAt: at };
+    if (w) await ctx.db.replace(workers, w.id, { ...record, firstSeenAt: w.firstSeenAt });
+    else await ctx.db.insert(workers, { ...record, firstSeenAt: at });
+    return true;
+  },
+});

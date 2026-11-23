@@ -18,6 +18,9 @@ export type Stub = Awaited<ReturnType<typeof startGitHubStub>> & {
   log: Array<{ method: string; path: string; query: string; idempotencyKey: string | null; auth: string }>;
   pulls: Array<{ number: number; head: string; state: string }>;
   setIssue(n: number, issue: { title: string; body: string }): void;
+  setFiles(sha: string, files: Array<{ filename: string; status: string; additions: number; deletions: number; patch?: string }>): void;
+  setReviews(n: number, reviews: Array<{ state: string; user: { login: string }; submitted_at: string }>): void;
+  setChecks(runs: Array<{ name: string; status: string; conclusion: string | null }>): void;
   url: string; close(): Promise<void>;
 };
 

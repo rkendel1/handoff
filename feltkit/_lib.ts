@@ -1,7 +1,7 @@
 /** Shared domain rules (not a function module: leading underscore). */
 import { fail } from "@feltdb/feltkit";
 import type { MutationCtx, QueryCtx } from "@feltdb/feltkit";
-import { delegations, history, repositories } from "./app.js";
+import { delegations, history, policy, repositories } from "./app.js";
 
 export type Source = "person" | "runner" | "system" | "github";
 export type DelegationState = (typeof import("./app.js").DELEGATION_STATES)[number];
@@ -62,3 +62,24 @@ export function requirePerson(ctx: QueryCtx | MutationCtx, why: string) {
 
 export const branchFor = (d: { number: number; generation: number }) => `handoff/d${d.number}-g${d.generation}`;
 export const invocationKey = (d: { id: string; generation: number }) => `d${d.id}-g${d.generation}`;
+
+/** Policy defaults until an admin sets them (Settings). */
+export const DEFAULT_POLICY = { maxAttempts: 3, leaseMinMs: 2_000, leaseMaxMs: 600_000 } as const;
+
+export async function policyOf(ctx: QueryCtx | MutationCtx) {
+  const [p] = await ctx.db.find(policy, { key: "workspace" });
+  return { maxAttempts: p?.maxAttempts ?? DEFAULT_POLICY.maxAttempts, leaseMinMs: p?.leaseMinMs ?? DEFAULT_POLICY.leaseMinMs, leaseMaxMs: p?.leaseMaxMs ?? DEFAULT_POLICY.leaseMaxMs };
+}
+
+/**
+ * Runtime capabilities a runner may declare, and what each value means. Displayed and used to enable
+ * controls; never used for authorization (the runner's declaration is its own claim).
+ */
+export const RUNTIME_CAPABILITIES = {
+  steer: ["next-step", "none"],
+  pause: ["between-steps", "none"],
+  interrupt: ["cancel-generation", "none"],
+  resume: ["continue", "none"],
+  stop: ["cooperative", "none"],
+  reconnect: ["resume-session", "none"],
+} as const;

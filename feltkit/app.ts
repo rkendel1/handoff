@@ -84,6 +84,8 @@ export const delegations = app.collection("delegations", {
   report: s.optional(s.object({ summary: s.string(), headSha: s.string(), at: s.number(), instance: s.string() })),
   /** Set only from GitHub facts (see github.ts verify). */
   verified: s.optional(s.object({ prNumber: s.number(), headSha: s.string(), at: s.number(), factId: s.string() })),
+  /** The latest runtime state the runner reported (session, turn, control mode, declared capabilities). Asserted. */
+  runtime: s.optional(s.object({ instance: s.string(), attempt: s.string(), session: s.optional(s.string()), turn: s.optional(s.string()), mode: s.optional(s.string()), capabilities: s.record(s.string()), at: s.number() })),
   /** A person's decision. */
   review: s.optional(s.object({ decision: s.enum(["accepted", "returned", "rejected"]), by: s.string(), at: s.number(), note: s.string() })),
   failure: s.optional(s.object({ code: s.string(), message: s.string(), at: s.number() })),
@@ -100,14 +102,49 @@ export const runEvents = app.collection("runEvents", {
   seq: s.number(),
   kind: s.enum(["progress", "tool", "command", "test", "message", "warning", "error"]),
   text: s.string({ maxLength: 4000 }),
+  /** The runtime session (EVE session id) and turn this event belongs to, as the runner reports them. */
+  session: s.optional(s.string()),
+  turn: s.optional(s.string()),
+  /** For tool and command events: the runner's reported status (requested, running, completed, failed). */
+  status: s.optional(s.string()),
   at: s.number(),
   receivedAt: s.number(),
 }, { unique: [["attempt", "seq"]], indexes: [{ fields: ["delegationId"] }] });
 
+/**
+ * Runner processes seen by Handoff, from their own heartbeats. Everything here is self-reported by
+ * the shared runner-pool principal: it describes, it does not authenticate (no per-runner identity).
+ */
+export const workers = app.collection("workers", {
+  instance: s.string({ minLength: 1, maxLength: 80 }),
+  state: s.enum(["idle", "working", "stopping"]),
+  runtime: s.object({ name: s.string(), version: s.string(), node: s.string(), model: s.optional(s.string()) }),
+  /** Runtime capabilities the runner declares (see RUNTIME_CAPABILITIES). */
+  capabilities: s.record(s.string()),
+  delegationId: s.optional(s.string()),
+  attempt: s.optional(s.string()),
+  session: s.optional(s.string()),
+  lastError: s.optional(s.string()),
+  firstSeenAt: s.number(),
+  lastSeenAt: s.number(),
+}, { unique: [["instance"]] });
+
+/** Governing policy for delegated work (one record, key "workspace"). Enforced at the action boundaries. */
+export const policy = app.collection("policy", {
+  key: s.string(),
+  /** Execution attempts per generation before the work fails (enforced at claim). */
+  maxAttempts: s.number(),
+  /** Lease bounds a runner may ask for (enforced at claim and resume). */
+  leaseMinMs: s.number(),
+  leaseMaxMs: s.number(),
+  updatedBy: s.optional(s.string()),
+  updatedAt: s.optional(s.number()),
+}, { unique: [["key"]] });
+
 /** What GitHub said, observed by Handoff itself. Never taken from a runner's arguments. */
 export const facts = app.collection("facts", {
   delegationId: s.string(),
-  kind: s.enum(["pull_request", "branch", "checks", "issue", "unknown_write"]),
+  kind: s.enum(["pull_request", "branch", "checks", "issue", "unknown_write", "diff", "commits", "reviews", "repository"]),
   /** How Handoff learned it: the response of its own call, or a read it made (poll / reconcile). */
   via: s.enum(["integration-response", "read"]),
   prNumber: s.optional(s.number()),
@@ -160,6 +197,9 @@ export const github = app.integration("github", {
     branchget: { method: "GET", path: "/repos/{owner}/{repo}/branches/{branch}", input: { owner: s.string(), repo: s.string(), branch: s.string() }, output: s.object({ name: s.string(), commit: s.object({ sha: s.string() }) }), effect: "observation", access: "github.read" },
     checkruns: { method: "GET", path: "/repos/{owner}/{repo}/commits/{ref}/check-runs", input: { owner: s.string(), repo: s.string(), ref: s.string() }, output: s.object({ total_count: s.number(), check_runs: s.array(s.object({ name: s.string(), status: s.string(), conclusion: s.unknown() })) }), effect: "observation", access: "github.read" },
     issueget: { method: "GET", path: "/repos/{owner}/{repo}/issues/{number}", input: { owner: s.string(), repo: s.string(), number: s.number() }, output: s.object({ number: s.number(), title: s.string(), body: s.unknown(), state: s.string() }), effect: "observation", access: "github.read" },
+    repoget: { method: "GET", path: "/repos/{owner}/{repo}", input: { owner: s.string(), repo: s.string() }, output: s.object({ full_name: s.string(), default_branch: s.string(), private: s.unknown() }), effect: "observation", access: "github.read" },
+    compare: { method: "GET", path: "/repos/{owner}/{repo}/compare/{basehead}", input: { owner: s.string(), repo: s.string(), basehead: s.string() }, output: s.object({ status: s.unknown(), ahead_by: s.unknown(), total_commits: s.unknown(), commits: s.array(s.object({ sha: s.string(), commit: s.object({ message: s.string() }) })), files: s.unknown() }), effect: "observation", access: "github.read" },
+    pullreviews: { method: "GET", path: "/repos/{owner}/{repo}/pulls/{number}/reviews", input: { owner: s.string(), repo: s.string(), number: s.number() }, output: s.array(s.object({ id: s.unknown(), state: s.string(), user: s.unknown(), submitted_at: s.unknown() })), effect: "observation", access: "github.read" },
     pullscreate: {
       method: "POST", path: "/repos/{owner}/{repo}/pulls",
       input: { owner: s.string(), repo: s.string(), title: s.string(), head: s.string(), base: s.string(), body: s.string() },

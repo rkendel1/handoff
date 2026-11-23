@@ -12,11 +12,14 @@ export async function startGitHubStub({ port = 0, bareRepo = null, token = null 
   const branches = new Map();
   const pulls = [];
   const issues = new Map();
+  const files = new Map(); // head sha -> [{ filename, status, additions, deletions, patch }]
+  const reviews = new Map(); // pr number -> [{ state, user: { login }, submitted_at }]
   const counts = { pullsCreated: 0, createRequests: 0, requests: 0, rejectedAuth: 0 };
   const log = [];
   let dropNextCreate = false;
   let dropBeforeCreate = false;
   let forcedStatus = null;
+  let checkRuns = [{ name: "test", status: "completed", conclusion: "success" }];
 
   const head = (b) => {
     if (bareRepo) {
@@ -36,6 +39,8 @@ export async function startGitHubStub({ port = 0, bareRepo = null, token = null 
       const send = (status, value, headers = {}) => { res.writeHead(status, { "content-type": "application/json", ...headers }); res.end(JSON.stringify(value)); };
       if (token && req.headers.authorization !== `Bearer ${token}` && req.headers.authorization !== `token ${token}`) { counts.rejectedAuth++; return send(401, { message: "Bad credentials" }); }
       if (forcedStatus) return send(forcedStatus, { message: forcedStatus === 429 ? "API rate limit exceeded" : "Service unavailable" }, forcedStatus === 429 ? { "x-ratelimit-remaining": "0", "retry-after": "60" } : {});
+      const root = url.pathname.match(/^\/repos\/([^/]+)\/([^/]+)\/?$/);
+      if (root) return send(200, { full_name: `${root[1]}/${root[2]}`, default_branch: "main", private: true });
       const m = url.pathname.match(/^\/repos\/([^/]+)\/([^/]+)\/(.+)$/);
       if (!m) return send(404, { message: "Not Found" });
       const [, owner, repo, rest] = m;
@@ -65,7 +70,20 @@ export async function startGitHubStub({ port = 0, bareRepo = null, token = null 
         const sha = head(decodeURIComponent(mm[1]));
         return sha ? send(200, { name: decodeURIComponent(mm[1]), commit: { sha } }) : send(404, { message: "Branch not found" });
       }
-      if ((mm = rest.match(/^commits\/([^/]+)\/check-runs$/))) return send(200, { total_count: 1, check_runs: [{ name: "test", status: "completed", conclusion: "success" }] });
+      if ((mm = rest.match(/^compare\/(.+)\.\.\.(.+)$/))) {
+        const [b, hd] = [decodeURIComponent(mm[1]), decodeURIComponent(mm[2])];
+        if (bareRepo) {
+          const g = (...a) => execFileSync("git", ["--git-dir", bareRepo, ...a], { encoding: "utf8" });
+          const commits = g("log", "--format=%H%x09%s", `${b}..${hd}`).trim().split("\n").filter(Boolean).map((l) => { const [sha, ...m] = l.split("\t"); return { sha, commit: { message: m.join("\t") } }; });
+          const fileList = g("diff", "--numstat", `${b}`, `${hd}`).trim().split("\n").filter(Boolean).map((l) => { const [add, del, name] = l.split("\t"); return { filename: name, status: "modified", additions: Number(add), deletions: Number(del), patch: g("diff", `${b}`, `${hd}`, "--", name).split("\n").slice(4).join("\n") }; });
+          return send(200, { status: "ahead", ahead_by: commits.length, total_commits: commits.length, commits, files: fileList });
+        }
+        const fl = files.get(hd) ?? [];
+        return send(200, { status: "ahead", ahead_by: 1, total_commits: 1, commits: [{ sha: hd, commit: { message: "Delegated change" } }], files: fl });
+      }
+      if ((mm = rest.match(/^pulls\/(\d+)\/reviews$/))) return send(200, reviews.get(Number(mm[1])) ?? []);
+      if (rest === "" || rest === undefined) return send(200, { full_name: `${owner}/${repo}`, default_branch: "main", private: true });
+      if ((mm = rest.match(/^commits\/([^/]+)\/check-runs$/))) return send(200, { total_count: checkRuns.length, check_runs: checkRuns });
       if ((mm = rest.match(/^issues\/(\d+)$/))) {
         const i = issues.get(Number(mm[1]));
         return i ? send(200, { number: Number(mm[1]), state: "open", ...i }) : send(404, { message: "Not Found" });
@@ -79,6 +97,9 @@ export async function startGitHubStub({ port = 0, bareRepo = null, token = null 
     url, counts, log, pulls,
     setBranch: (b, sha) => branches.set(b, sha),
     setIssue: (n, issue) => issues.set(n, issue),
+    setFiles: (sha, list) => files.set(sha, list),
+    setReviews: (n, list) => reviews.set(n, list),
+    setChecks: (list) => { checkRuns = list; },
     dropNextCreate: () => { dropNextCreate = true; },
     dropBeforeCreate: () => { dropBeforeCreate = true; },
     setStatus: (code) => { forcedStatus = code; },
